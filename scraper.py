@@ -101,10 +101,3 @@ def get_recipe(url):
         print("No ingredients found in recipe schema.")
 
     return recipe_data
-
-if __name__ == "__main__":
-    url = "https://smittenkitchen.com/2022/01/spanakopita/"
-    if not url.startswith("http://") and not url.startswith("https://"):
-        print("Invalid URL")
-    else:
-        get_recipe(url)
