@@ -14,6 +14,10 @@ def get_recipe(url):
     scripts = soup.find_all("script", type="application/ld+json")
 
     print("JSON blocks found:", len(scripts))
+    print('"Recipe"' in response.text)
+    print('"recipeIngredient"' in response.text)
+    print('"@type": "Recipe"' in response.text)
+    print('"@type":"Recipe"' in response.text)
 
     if response.status_code != 200:
         print(f"Request failed with status code: {response.status_code}")
@@ -22,10 +26,28 @@ def get_recipe(url):
     recipe = None
 
     for script in scripts:
+        print("SCRIPT START:")
+        print(script.get_text()[:300])
+        print()
+
         try:
             data = json.loads(script.get_text())
         except:
+            print("JSON parse failed")
             continue
+
+        if isinstance(data, list):
+            for item in data:
+                if isinstance(item, dict) and item.get("@type") == "Recipe":
+                    recipe = item
+                    break
+
+            if recipe:
+                break
+
+            continue
+        
+        print("top level @type:", data.get("@type"))
 
         if data.get("@type") == "Recipe":
             recipe = data
@@ -57,5 +79,8 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.foodnetwork.com/recipes/food-network-kitchen/chicken-fettuccine-alfredo-3364118"
-    get_recipe(url)
+    url = "hhttps://www.bbcgoodfood.com/recipes/easy-pancakes"
+    if not url.startswith("http://") and not url.startswith("https://"):
+        print("Invalid URL")
+    else:
+        get_recipe(url)
