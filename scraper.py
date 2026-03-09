@@ -19,7 +19,7 @@ def get_recipe(url):
     print('"@type": "Recipe"' in response.text)
     print('"@type":"Recipe"' in response.text)
 
-    if response.status_code != 200:
+    if response.status_code in (403,404):
         print(f"Request failed with status code: {response.status_code}")
         return None
     
@@ -85,7 +85,7 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.kraftheinz.com/jell-o/recipes/551923-chocolate-pudding-pie-recipe"
+    url = "https://www.betterthanbouillon.com/recipes/chicken-noodle-soup/"
     if not url.startswith("http://") and not url.startswith("https://"):
         print("Invalid URL")
     else:
