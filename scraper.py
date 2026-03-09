@@ -6,29 +6,9 @@ def get_recipe(url):
 
     response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
 
-    print("Status code:", response.status_code)
-    print("Final URL:", response.url)
-    print("HTML preview:", response.text[:500])
-
-    print(response.text.find("recipeIngredient"))
-    index = response.text.find("recipeIngredient")
-    print(response.text[index-300:index+500])
-
     soup = BeautifulSoup(response.text, "html.parser")
 
-    ingredient_tags = soup.find_all(attrs={"itemprop": "recipeIngredient"})
-    print("HTML ingredient tags found:", len(ingredient_tags))
-
-    for tag in ingredient_tags[:5]:
-        print(tag.get_text(strip=True))
-
     scripts = soup.find_all("script", type="application/ld+json")
-
-    print("JSON blocks found:", len(scripts))
-    print('"Recipe"' in response.text)
-    print('"recipeIngredient"' in response.text)
-    print('"@type": "Recipe"' in response.text)
-    print('"@type":"Recipe"' in response.text)
 
     if response.status_code in (403,404):
         print(f"Request failed with status code: {response.status_code}")
@@ -37,14 +17,10 @@ def get_recipe(url):
     recipe = None
 
     for script in scripts:
-        print("SCRIPT START:")
-        print(script.get_text()[:300])
-        print()
 
         try:
             data = json.loads(script.get_text())
         except:
-            print("JSON parse failed")
             continue
 
         if isinstance(data, list):
@@ -66,7 +42,6 @@ def get_recipe(url):
             continue
         
         type_value = data.get("@type")
-        print("top level @type:", type_value)
 
         if type_value == "Recipe" or (
             isinstance(type_value, list) and "Recipe" in type_value
@@ -76,7 +51,6 @@ def get_recipe(url):
 
         if "@graph" in data:
             for item in data["@graph"]:
-                print("graph item @type:", item.get("@type"))
                 type_value = item.get("@type")
 
                 if type_value == "Recipe" or (
@@ -111,22 +85,20 @@ def get_recipe(url):
             return recipe_data
 
         return None
-    
-    print(recipe.keys())
 
     recipe_data = {
-        "name": recipe.get("name"),
+        "name": recipe.get("name", "Unknown recipe"),
         "ingredients": recipe.get("recipeIngredient")
     }
 
     print(recipe_data["name"])
     print()
 
-    if recipe_data["ingredients"] is None:
-        print("No ingredients found in recipe schema.")
-    else:
+    if recipe_data["ingredients"]:
         for ingredient in recipe_data["ingredients"]:
             print(ingredient)
+    else:
+        print("No ingredients found in recipe schema.")
 
     return recipe_data
 
