@@ -7,14 +7,30 @@ def get_recipe(url):
     response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(response.text, "html.parser")
     scripts = soup.find_all("script", type="application/ld+json")
-    json_text = scripts[0].get_text()
-    data = json.loads(json_text)
-
+    
     recipe = None
-    for item in data["@graph"]:
-        if item.get("@type") == "Recipe":
-            recipe = item
+
+    for script in scripts:
+        try:
+            data = json.loads(script.get_text())
+        except:
+            continue
+
+        if data.get("@type") == "Recipe":
+            recipe = data
             break
+
+        if "@graph" in data:
+            for item in data["@graph"]:
+                if item.get("@type") == "Recipe":
+                    recipe = item
+                    break
+
+        if recipe:
+            break
+
+    if recipe is None:
+        return None
 
     recipe_data = {
         "name": recipe["name"],
