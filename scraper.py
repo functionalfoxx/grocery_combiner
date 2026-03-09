@@ -7,6 +7,10 @@ def get_recipe(url):
     response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(response.text, "html.parser")
     scripts = soup.find_all("script", type="application/ld+json")
+
+    if response.status_code != 200:
+        print(f"Request failed with status code: {response.status_code}")
+        return None
     
     recipe = None
 
@@ -46,5 +50,5 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.allrecipes.com/recipe/12349/raspberry-pie-iii/"
+    url = "https://www.tastingtable.com/762430/easy-raspberry-pie-recipe/"
     get_recipe(url)
