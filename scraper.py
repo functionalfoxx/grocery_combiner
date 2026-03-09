@@ -10,7 +10,18 @@ def get_recipe(url):
     print("Final URL:", response.url)
     print("HTML preview:", response.text[:500])
 
+    print(response.text.find("recipeIngredient"))
+    index = response.text.find("recipeIngredient")
+    print(response.text[index-300:index+500])
+
     soup = BeautifulSoup(response.text, "html.parser")
+
+    ingredient_tags = soup.find_all(attrs={"itemprop": "recipeIngredient"})
+    print("HTML ingredient tags found:", len(ingredient_tags))
+
+    for tag in ingredient_tags[:5]:
+        print(tag.get_text(strip=True))
+
     scripts = soup.find_all("script", type="application/ld+json")
 
     print("JSON blocks found:", len(scripts))
@@ -54,16 +65,23 @@ def get_recipe(url):
 
             continue
         
-        print("top level @type:", data.get("@type"))
+        type_value = data.get("@type")
+        print("top level @type:", type_value)
 
-        if data.get("@type") == "Recipe":
+        if type_value == "Recipe" or (
+            isinstance(type_value, list) and "Recipe" in type_value
+        ):
             recipe = data
             break
 
         if "@graph" in data:
             for item in data["@graph"]:
                 print("graph item @type:", item.get("@type"))
-                if item.get("@type") == "Recipe":
+                type_value = item.get("@type")
+
+                if type_value == "Recipe" or (
+                    isinstance(type_value, list) and "Recipe" in type_value
+                ):
                     recipe = item
                     break
 
@@ -71,6 +89,27 @@ def get_recipe(url):
             break
 
     if recipe is None:
+        ingredient_tags = soup.find_all(attrs={"itemprop": "recipeIngredient"})
+
+        if ingredient_tags:
+            ingredients = [tag.get_text(strip=True) for tag in ingredient_tags]
+
+            title_tag = soup.find("title")
+            name = title_tag.get_text(strip=True) if title_tag else "Unknown recipe"
+
+            recipe_data = {
+                "name": name,
+                "ingredients": ingredients
+            }
+
+            print(recipe_data["name"])
+            print()
+
+            for ingredient in recipe_data["ingredients"]:
+                print(ingredient)
+
+            return recipe_data
+
         return None
     
     print(recipe.keys())
@@ -92,7 +131,7 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.bhg.com/million-dollar-lasagna-8749661"
+    url = "https://smittenkitchen.com/2022/01/spanakopita/"
     if not url.startswith("http://") and not url.startswith("https://"):
         print("Invalid URL")
     else:
