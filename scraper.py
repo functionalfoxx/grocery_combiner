@@ -55,6 +55,7 @@ def get_recipe(url):
 
         if "@graph" in data:
             for item in data["@graph"]:
+                print("graph item @type:", item.get("@type"))
                 if item.get("@type") == "Recipe":
                     recipe = item
                     break
@@ -64,22 +65,27 @@ def get_recipe(url):
 
     if recipe is None:
         return None
+    
+    print(recipe.keys())
 
     recipe_data = {
-        "name": recipe["name"],
-        "ingredients": recipe["recipeIngredient"]
+        "name": recipe.get("name"),
+        "ingredients": recipe.get("recipeIngredient")
     }
 
     print(recipe_data["name"])
     print()
 
-    for ingredient in recipe_data["ingredients"]:
-        print(ingredient)
+    if recipe_data["ingredients"] is None:
+        print("No ingredients found in recipe schema.")
+    else:
+        for ingredient in recipe_data["ingredients"]:
+            print(ingredient)
 
     return recipe_data
 
 if __name__ == "__main__":
-    url = "hhttps://www.bbcgoodfood.com/recipes/easy-pancakes"
+    url = "https://www.kraftheinz.com/jell-o/recipes/551923-chocolate-pudding-pie-recipe"
     if not url.startswith("http://") and not url.startswith("https://"):
         print("Invalid URL")
     else:
