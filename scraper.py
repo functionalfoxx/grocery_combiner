@@ -5,8 +5,15 @@ import json
 def get_recipe(url):
 
     response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+
+    print("Status code:", response.status_code)
+    print("Final URL:", response.url)
+    print("HTML preview:", response.text[:500])
+
     soup = BeautifulSoup(response.text, "html.parser")
     scripts = soup.find_all("script", type="application/ld+json")
+
+    print("JSON blocks found:", len(scripts))
 
     if response.status_code != 200:
         print(f"Request failed with status code: {response.status_code}")
@@ -50,5 +57,5 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.tastingtable.com/762430/easy-raspberry-pie-recipe/"
+    url = "https://www.foodnetwork.com/recipes/food-network-kitchen/chicken-fettuccine-alfredo-3364118"
     get_recipe(url)
