@@ -38,7 +38,14 @@ def get_recipe(url):
 
         if isinstance(data, list):
             for item in data:
-                if isinstance(item, dict) and item.get("@type") == "Recipe":
+                if not isinstance(item, dict):
+                    continue
+
+                type_value = item.get("@type")
+
+                if type_value == "Recipe" or (
+                    isinstance(type_value, list) and "Recipe" in type_value
+                ):
                     recipe = item
                     break
 
@@ -85,7 +92,7 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.betterthanbouillon.com/recipes/chicken-noodle-soup/"
+    url = "https://www.bhg.com/million-dollar-lasagna-8749661"
     if not url.startswith("http://") and not url.startswith("https://"):
         print("Invalid URL")
     else:
