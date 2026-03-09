@@ -30,5 +30,5 @@ def get_recipe(url):
     return recipe_data
 
 if __name__ == "__main__":
-    url = "https://www.culinaryhill.com/blueberry-muffins/"
+    url = "https://www.allrecipes.com/recipe/12349/raspberry-pie-iii/"
     get_recipe(url)
