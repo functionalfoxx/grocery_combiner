@@ -72,6 +72,30 @@ def normalize_spaces(text):
     words = text.split()
     return " ".join(words)
 
+def normalize_written_fractions(text):
+    replacements = {
+        "half of an ": "1/2 ",
+        "half of a ": "1/2 ",
+        "half an ": "1/2 ",
+        "half a ": "1/2 ",
+        "a half ": "1/2 ",
+        "quarter of an ": "1/4 ",
+        "quarter of a ": "1/4 ",
+        "a quarter of an ": "1/4 ",
+        "a quarter of a ": "1/4 ",
+        "quarter an ": "1/4 ",
+        "quarter a ": "1/4 ",
+    }
+
+    cleaned = text
+
+    for old, new in replacements.items():
+        if cleaned.startswith(old):
+            cleaned = cleaned.replace(old, new, 1)
+            break
+
+    return cleaned
+
 def remove_trailing_punctuation(text):
     return text.rstrip(",.* ")
 
@@ -141,6 +165,8 @@ def remove_leading_packaging_phrases(text):
         r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
         r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?ounce\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
         r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*gram\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?gram\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
         r'^(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
     ]
 
@@ -258,7 +284,7 @@ def extract_quantity(ingredient):
         "⅞": "7/8"
     }
 
-    first_word = words[0].lower().strip(",.")
+    first_word = words[0].lower().strip(",")
     first_word = first_word.replace("–", "-").replace("—", "-")
 
     if len(words) > 2 and first_word in written_numbers:
@@ -326,7 +352,23 @@ def extract_quantity(ingredient):
         return written_numbers[first_word]
 
     return None
-    
+
+def remove_leading_written_number(text):
+    words = text.split()
+
+    if not words:
+        return text
+
+    written_numbers = {
+        "one", "two", "three", "four", "five",
+        "six", "seven", "eight", "nine", "ten"
+    }
+
+    if words[0] in written_numbers:
+        return " ".join(words[1:])
+
+    return text
+
 def remove_leading_quantity(ingredient):
     pattern = r'^\s*(?:(?:plus\s+)?\d+(?:\.\d+)?\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+and\s+\d+/\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+and\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+\d+/\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?-\d+/\d+\s+|(?:plus\s+)?\d+/\d+\s+|(?:plus\s+)?[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?-[a-z]+\.?\s+|(?:plus\s+)?\d+(?:\.\d+)?[a-z]+\.?\s+|(?:plus\s+)?\.\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+)'
     return re.sub(pattern, '', ingredient).strip()
@@ -417,7 +459,7 @@ def extract_unit(ingredient):
         "¼", "½", "¾", "⅓", "⅔", "⅛", "⅜", "⅝", "⅞"
     }
 
-    first_word = words[0].lower().strip(",.")
+    first_word = words[0].lower().strip(",")
     first_word = first_word.replace("–", "-").replace("—", "-")
 
     attached_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)([a-z]+)\.?$", first_word)
@@ -426,8 +468,8 @@ def extract_unit(ingredient):
         return unit_map.get(unit_word)
 
     if len(words) > 2 and first_word in written_numbers:
-        second_word = words[1].lower().strip(",.")
-        third_word = words[2].lower().strip(",.")
+        second_word = words[1].lower().strip(",")
+        third_word = words[2].lower().strip(",")
         second_word = second_word.replace("–", "-").replace("—", "-")
 
         if re.match(r"^\d+(?:\.\d+)?-ounce$", second_word) and third_word in {"can", "cans"}:
@@ -437,8 +479,8 @@ def extract_unit(ingredient):
             return "oz"
 
     if len(words) > 2:
-        second_word = words[1].lower().strip(",.")
-        third_word = words[2].lower().strip(",.")
+        second_word = words[1].lower().strip(",")
+        third_word = words[2].lower().strip(",")
         third_word = singularize_unit(third_word)
 
         if first_word.replace(".", "", 1).isdigit():
@@ -446,7 +488,7 @@ def extract_unit(ingredient):
                 return unit_map.get(third_word)
 
     if len(words) > 1:
-        second_word = words[1].lower().strip(",.")
+        second_word = words[1].lower().strip(",")
         second_word = singularize_unit(second_word)
 
         if first_word.replace(".", "", 1).isdigit():
@@ -470,7 +512,7 @@ def remove_leading_unit(ingredient):
     if not words:
         return ingredient
 
-    first_word = words[0].lower().strip(".,")
+    first_word = words[0].lower().strip(",.")
     first_word = singularize_unit(first_word)
 
     if first_word in unit_map:
@@ -590,30 +632,44 @@ def collect_ingredients(all_recipes):
 
         for ingredient in ingredients:
             normalized = normalize_ingredient(ingredient)
-            quantity = extract_quantity(normalized)
+            normalized = normalize_written_fractions(normalized)
             no_parentheses = remove_parentheses(normalized)
             no_brackets = remove_brackets(no_parentheses)
             normalized_ranges = normalize_quantity_ranges(no_brackets)
             cleaned = remove_filler_words(normalized_ranges)
-            no_amount = remove_leading_quantity(cleaned)
+
+            quantity = extract_quantity(cleaned)
             unit = extract_unit(cleaned)
+
+            no_amount = remove_leading_quantity(cleaned)
+            no_amount = remove_leading_written_number(no_amount)
             no_unit = remove_leading_unit(no_amount)
             no_unit = remove_leading_plus_quantity_phrase(no_unit)
-            no_unit = remove_leading_container_words(no_unit)
             no_packaging = remove_leading_packaging_words(no_unit)
-            no_packaging = remove_leading_packaging_phrases(no_packaging)
+
             final_ingredient = normalize_spaces(no_packaging)
             final_ingredient = remove_comma_descriptors(final_ingredient)
             final_ingredient = remove_leading_descriptors(final_ingredient)
             final_ingredient = remove_duplicate_adjacent_words(final_ingredient)
             final_ingredient = remove_leading_of(final_ingredient)
             final_ingredient = remove_toppings_prefix(final_ingredient)
+            final_ingredient = remove_leading_container_words(final_ingredient)
+            final_ingredient = remove_leading_packaging_phrases(final_ingredient)
             final_ingredient = remove_trailing_prep_words(final_ingredient)
             final_ingredient = remove_trailing_punctuation(final_ingredient)
 
-            quantity, unit, final_ingredient = normalize_garlic_cloves(
-                quantity, unit, final_ingredient
-            )
+            if final_ingredient in {"garlic clove", "garlic cloves"}:
+                final_ingredient = "garlic"
+                if unit is None:
+                    unit = "clove"
+
+            if final_ingredient == "warm water" or final_ingredient == "white pepper":
+                print("TRACE")
+                print("original:", ingredient)
+                print("quantity:", quantity)
+                print("unit:", unit)
+                print("final_ingredient:", final_ingredient)
+                print()
 
             if final_ingredient != "" and not is_bad_ingredient(final_ingredient):
                 all_ingredients.append((quantity, unit, final_ingredient))
@@ -622,15 +678,6 @@ def collect_ingredients(all_recipes):
 
 def get_ingredient_name(ingredient):
     return ingredient.strip()
-
-def normalize_garlic_cloves(quantity, unit, ingredient):
-    if ingredient == "garlic cloves":
-        return quantity, "clove", "garlic"
-    if ingredient == "clove garlic":
-        return quantity, "clove", "garlic"
-    if ingredient == "garlic clove":
-        return quantity, "clove", "garlic"
-    return quantity, unit, ingredient
 
 def singularize_ingredient(name):
     if " and " in name:
@@ -701,7 +748,10 @@ def count_ingredients(all_ingredients):
 
         if key in ingredient_counts:
             if quantity is not None:
-                ingredient_counts[key] += quantity
+                if ingredient_counts[key] is None:
+                    ingredient_counts[key] = quantity
+                else:
+                    ingredient_counts[key] += quantity
         else:
             ingredient_counts[key] = quantity
 
@@ -720,8 +770,18 @@ def display_grocery_list(ingredient_counts):
                 print(unit, ingredient)
         else:
             quantity = round(quantity, 2)
+
             if unit is None:
-                print(quantity, ingredient)
+                display_name = ingredient
+
+                if quantity == 1:
+                    if ingredient == "bay leaves":
+                        display_name = "bay leaf"
+                else:
+                    if ingredient != "bay leaves" and not ingredient.endswith("s"):
+                        display_name = ingredient + "s"
+
+                print(quantity, display_name)
             else:
                 print(quantity, unit, ingredient)
 
