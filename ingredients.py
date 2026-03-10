@@ -19,10 +19,25 @@ def collect_ingredients(all_recipes):
 
     return all_ingredients
 
+def get_ingredient_name(ingredient):
+    words = ingredient.split()
+
+    if len(words) == 0:
+        return ""
+
+    return words[-1]
+
+def singularize_ingredient(name):
+    if name.endswith("s"):
+        return name [:-1]
+    return name
+
 def count_ingredients(all_ingredients):
     ingredient_counts = {}
 
     for ingredient in all_ingredients:
+        name = get_ingredient_name(ingredient)
+
         if ingredient in ingredient_counts:
             ingredient_counts[ingredient] += 1
         else:
