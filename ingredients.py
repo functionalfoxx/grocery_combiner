@@ -67,10 +67,28 @@ def extract_unit(ingredient):
         return None
 
     first_word = words[0]
-    clean_word = first_word.rstrip(".,;:")
+    clean_word = first_word.rstrip(".,;:").lower()
 
-    if clean_word in ["tsp", "tbsp", "c", "cup", "cups", "lb"]:
-        return clean_word
+    unit_map = {
+        "tsp": "tsp",
+        "tsps": "tsp",
+        "teaspoon": "tsp",
+        "teaspoons": "tsp",
+        "tbsp": "tbsp",
+        "tbsps": "tbsp",
+        "tablespoon": "tbsp",
+        "tablespoons": "tbsp",
+        "c": "cup",
+        "cup": "cup",
+        "cups": "cup",
+        "lb": "lb",
+        "lbs": "lb",
+        "pound": "lb",
+        "pounds": "lb"
+    }
+
+    if clean_word in unit_map:
+        return unit_map[clean_word]
 
     return None
 
@@ -112,10 +130,11 @@ def collect_ingredients(all_recipes):
             no_parentheses = remove_parentheses(normalized)
             cleaned = remove_filler_words(no_parentheses)
             no_amount = remove_leading_quantity(cleaned)
+            unit = extract_unit(no_amount)
             final_ingredient = normalize_spaces(no_amount)
 
             if final_ingredient != "":
-                all_ingredients.append((quantity, final_ingredient))
+                all_ingredients.append((quantity, unit, final_ingredient))
 
     return all_ingredients
 
@@ -142,7 +161,7 @@ def count_ingredients(all_ingredients):
     ingredient_counts = {}
 
     for item in all_ingredients:
-        quantity, ingredient = item
+        quantity, unit, ingredient = item
         name = get_ingredient_name(ingredient)
         name = singularize_ingredient(name)
 
