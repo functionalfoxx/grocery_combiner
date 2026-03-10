@@ -7,6 +7,31 @@ def normalize_ingredient(ingredient):
     normalized = ingredient.strip().lower()
     return normalized
 
+def remove_filler_words(ingredient):
+    filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
+
+    words = ingredient.split()
+    cleaned_words = []
+
+    for word in words:
+        if word not in filler_words:
+            cleaned_words.append(word)
+
+    return " ".join(cleaned_words)
+
+def remove_leading_amount(ingredient):
+    words = ingredient.split()
+
+    if len(words) == 0:
+        return ""
+    
+    first_word = words [0]
+
+    if first_word [0].isdigit():
+        return " ".join(words[1:])
+    
+    return ingredient
+
 def collect_ingredients(all_recipes):
     all_ingredients = []
 
@@ -16,6 +41,9 @@ def collect_ingredients(all_recipes):
         for ingredient in ingredients:
             normalized = normalize_ingredient(ingredient)
             all_ingredients.append(normalized)
+            cleaned = remove_filler_words(normalized)
+            no_amount = remove_leading_amount(cleaned)
+            all_ingredients.append(cleaned)
 
     return all_ingredients
 
@@ -51,6 +79,7 @@ def display_grocery_list(ingredient_counts):
 
     for ingredient in sorted(ingredient_counts):
         count = ingredient_counts[ingredient]
-        print(count, "-", ingredient)
+        print(ingredient, "-", count)
 
     print()
+
