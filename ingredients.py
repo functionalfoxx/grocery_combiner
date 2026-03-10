@@ -1,34 +1,12 @@
 from fractions import Fraction
 import re
 
-def add_recipe(all_recipes, recipe_data):
-    if recipe_data is not None:
-        all_recipes.append(recipe_data)
-    return all_recipes
-
-def normalize_ingredient(ingredient):
-    normalized = ingredient.strip().lower()
-    normalized = normalized.replace("&nbsp;", " ")
-    return normalized
-
-def normalize_spaces(text):
-    words = text.split()
-    return " ".join(words)
-
-def remove_trailing_punctuation(text):
-    return text.rstrip(",.* ")
-
-def remove_comma_descriptors(text):
-    parts = text.split(",")
-    return parts[0].strip()
-
-def remove_leading_descriptors(text):
-    words = text.split()
-
-    if len(words) == 0:
-        return text
-
-    leading_descriptors = [
+leading_descriptors = [
+        "boneless",
+        "skinless",
+        "medium",
+        "small",
+        "large",
         "chopped",
         "diced",
         "minced",
@@ -47,10 +25,46 @@ def remove_leading_descriptors(text):
         "cooled"
     ]
 
-    if words[0] in leading_descriptors:
-        return " ".join(words[1:])
+def add_recipe(all_recipes, recipe_data):
+    if recipe_data is not None:
+        all_recipes.append(recipe_data)
+    return all_recipes
 
-    return text
+def normalize_ingredient(ingredient):
+    normalized = ingredient.strip().lower()
+    normalized = normalized.replace("&nbsp;", " ")
+    return normalized
+
+def normalize_spaces(text):
+    words = text.split()
+    return " ".join(words)
+
+def remove_trailing_punctuation(text):
+    return text.rstrip(",.* ")
+
+def remove_comma_descriptors(text):
+    parts = [part.strip() for part in text.split(",")]
+
+    if len(parts) == 1:
+        return text
+
+    first_part_words = parts[0].split()
+
+    if len(first_part_words) > 0 and all(word in leading_descriptors for word in first_part_words):
+        return " ".join(parts[:2]).strip()
+
+    return parts[0]
+
+def remove_leading_descriptors(text):
+    words = text.split()
+
+    if len(words) == 0:
+        return text
+
+    while len(words) > 0 and words[0] in leading_descriptors:
+        words.pop(0)
+
+    return " ".join(words)
 
 def extract_quantity(ingredient):
     words = ingredient.split()
@@ -164,6 +178,7 @@ unit_map = {
         "pkg": "package",
         "pouch": "pouch",
         "pound": "lb",
+        "rib": "rib",
         "sheet": "sheet",
         "slice": "slice",
         "splash": "splash",
