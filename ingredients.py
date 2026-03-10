@@ -30,10 +30,9 @@ def remove_leading_amount(ingredient):
         return ""
     
     first_word = words [0]
+    fraction_chars = "¼½¾⅓⅔⅛⅜⅝⅞"
 
-    if first_word [0].isdigit():
-
-        if first_word[0].isdigit():
+    if first_word [0].isdigit() or first_word[0] in fraction_chars:
             if len(words) >= 3:
                 return " ".join(words[2:])
             if len(words) == 2:
@@ -68,7 +67,9 @@ def collect_ingredients(all_recipes):
             cleaned = remove_filler_words(no_parentheses)
             no_amount = remove_leading_amount(cleaned)
             final_ingredient = normalize_spaces(no_amount)
-            all_ingredients.append(final_ingredient)
+
+            if final_ingredient != "":
+                all_ingredients.append(final_ingredient)
 
 
     return all_ingredients
