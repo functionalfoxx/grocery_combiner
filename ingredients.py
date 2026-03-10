@@ -266,6 +266,20 @@ def remove_parentheses(ingredient):
 
     return result.strip()
 
+def remove_brackets(ingredient):
+    result = ""
+    skip = False
+
+    for char in ingredient:
+        if char == "[":
+            skip = True
+        elif char == "]":
+            skip = False
+        elif not skip:
+            result += char
+
+    return result.strip()
+
 def collect_ingredients(all_recipes):
     all_ingredients = []
 
@@ -276,7 +290,8 @@ def collect_ingredients(all_recipes):
             quantity = extract_quantity(ingredient)
             normalized = normalize_ingredient(ingredient)
             no_parentheses = remove_parentheses(normalized)
-            cleaned = remove_filler_words(no_parentheses)
+            no_brackets = remove_brackets(no_parentheses)
+            cleaned = remove_filler_words(no_brackets)
             no_amount = remove_leading_quantity(cleaned)
             unit = extract_unit(no_amount)
             no_unit = remove_leading_unit(no_amount)
@@ -334,7 +349,7 @@ def count_ingredients(all_ingredients):
 def display_grocery_list(ingredient_counts):
     print("\nGROCERY LIST\n")
 
-    for (ingredient, unit) in sorted(ingredient_counts):
+    for (ingredient, unit) in sorted(ingredient_counts, key=lambda item: ((item[0] or ""), (item[1] or ""))):
         quantity = round(ingredient_counts[(ingredient, unit)], 2)
 
         if unit is None:
