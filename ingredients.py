@@ -93,7 +93,7 @@ def extract_quantity(ingredient):
     if len(words) == 0:
         return None
 
-    first_word = words[0]
+    first_word = words[0].lower().strip(",.")
 
     unicode_fractions = {
         "¼": "1/4",
@@ -106,6 +106,14 @@ def extract_quantity(ingredient):
         "⅝": "5/8",
         "⅞": "7/8"
     }
+
+    attached_match = re.match(r"^(\d+(?:\.\d+)?)([a-z]+)$", first_word)
+    if attached_match:
+        return float(attached_match.group(1))
+
+    hyphen_unit_match = re.match(r"^(\d+(?:\.\d+)?)-[a-z]+$", first_word)
+    if hyphen_unit_match:
+        return float(hyphen_unit_match.group(1))
 
     if "-" in first_word and "/" in first_word:
         parts = first_word.split("-")
@@ -138,7 +146,7 @@ def extract_quantity(ingredient):
 
     if "/" in first_word:
         return round(float(Fraction(first_word)), 2)
-    
+
     try:
         return float(first_word)
     except ValueError:
@@ -241,9 +249,61 @@ def remove_leading_unit(ingredient):
     return ingredient
 
 def remove_filler_words(ingredient):
-    filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
+    filler_phrases = [
+        "about",
+        "approximately",
+        "as desired",
+        "as needed",
+        "at room temperature",
+        "divided",
+        "extra for garnish",
+        "extra for serving",
+        "extra for topping",
+        "for garnish",
+        "for serving",
+        "for topping",
+        "if desired",
+        "more to taste",
+        "or frozen",
+        "or more",
+        "or more to taste",
+        "plus a little extra",
+        "plus a little extra for frying",
+        "plus more",
+        "plus more for serving",
+        "plus more to taste",
+        "such as",
+        "to brush",
+        "to coat",
+        "to drizzle",
+        "to dust",
+        "to finish",
+        "to garnish",
+        "to grease",
+        "to line",
+        "to serve",
+        "to sprinkle",
+        "to taste",
+        "to top"
+    ]
 
-    words = ingredient.split()
+    cleaned = ingredient
+
+    for phrase in filler_phrases:
+        cleaned = cleaned.replace(phrase, "")
+
+    words = cleaned.split()
+    filler_words = [
+        "about",
+        "approximately",
+        "divided",
+        "extra",
+        "garnish",
+        "optional",
+        "roughly",
+        "such",
+    ]
+
     cleaned_words = []
 
     for word in words:
