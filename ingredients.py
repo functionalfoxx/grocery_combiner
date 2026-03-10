@@ -3,12 +3,19 @@ def add_recipe(all_recipes, recipe_data):
         all_recipes.append(recipe_data)
     return all_recipes
 
+def normalize_ingredient(ingredient):
+    normalized = ingredient.strip().lower()
+    return normalized
+
 def collect_ingredients(all_recipes):
     all_ingredients = []
 
     for recipe in all_recipes:
         ingredients = recipe["ingredients"]
-        all_ingredients.extend(ingredients)
+
+            for ingredient in ingredients:
+                normalized = normalize_ingredient(ingredient)
+                all_ingredients.append(normalized)
 
     return all_ingredients
 
