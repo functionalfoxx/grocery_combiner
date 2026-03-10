@@ -1,4 +1,5 @@
 from fractions import Fraction
+import re
 
 def add_recipe(all_recipes, recipe_data):
     if recipe_data is not None:
@@ -59,6 +60,18 @@ def extract_quantity(ingredient):
 
     first_word = words[0]
 
+    unicode_fractions = {
+        "¼": "1/4",
+        "½": "1/2",
+        "¾": "3/4",
+        "⅓": "1/3",
+        "⅔": "2/3",
+        "⅛": "1/8",
+        "⅜": "3/8",
+        "⅝": "5/8",
+        "⅞": "7/8"
+    }
+
     if "-" in first_word and "/" in first_word:
         parts = first_word.split("-")
         if len(parts) == 2:
@@ -77,17 +90,13 @@ def extract_quantity(ingredient):
         except ValueError:
             pass
 
-    unicode_fractions = {
-        "¼": "1/4",
-        "½": "1/2",
-        "¾": "3/4",
-        "⅓": "1/3",
-        "⅔": "2/3",
-        "⅛": "1/8",
-        "⅜": "3/8",
-        "⅝": "5/8",
-        "⅞": "7/8"
-    }
+    if len(words) > 1 and words[1] in unicode_fractions:
+        try:
+            whole = float(words[0])
+            fraction = float(Fraction(unicode_fractions[words[1]]))
+            return round(whole + fraction, 2)
+        except ValueError:
+            pass
 
     if first_word in unicode_fractions:
         return round(float(Fraction(unicode_fractions[first_word])), 2)
@@ -101,63 +110,96 @@ def extract_quantity(ingredient):
         return None
     
 def remove_leading_quantity(ingredient):
-    words = ingredient.split()
+    pattern = r'^\s*(?:\d+(?:\.\d+)?\s*[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?(?:\s+\d+/\d+|-\d+/\d+|/\d+)?|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s*'
+    return re.sub(pattern, '', ingredient).strip()
 
-    if len(words) == 0:
-        return ingredient
+def singularize_unit(word):
+    if word.endswith("ches"):
+        return word[:-2]
+    if word.endswith("xes"):
+        return word[:-2]
+    if word.endswith("ses"):
+        return word[:-2]
+    if word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
 
-    unicode_fractions = "¼½¾⅓⅔⅛⅜⅝⅞"
-    first_word = words[0]
-
-    if len(words) > 1 and first_word[0].isdigit() and "/" in words[1]:
-        return " ".join(words[2:])
-
-    if first_word[0].isdigit() or "/" in first_word or first_word in unicode_fractions:
-        return " ".join(words[1:])
-
-    return ingredient
+unit_map = {
+        "bag": "bag",
+        "bottle": "bottle",
+        "box": "box",
+        "bulb": "bulb",
+        "bunch": "bunch",
+        "c": "cup",
+        "can": "can",
+        "carton": "carton",
+        "clove": "clove",
+        "container": "container",
+        "cup": "cup",
+        "dash": "dash",
+        "drizzle": "drizzle",
+        "drop": "drop",
+        "ear": "ear",
+        "g": "g",
+        "gram": "g",
+        "head": "head",
+        "jar": "jar",
+        "kg": "kg",
+        "kilogram": "kg",
+        "l": "l",
+        "lb": "lb",
+        "liter": "l",
+        "litre": "l",
+        "loaf": "loaf",
+        "ml": "ml",
+        "milliliter": "ml",
+        "millilitre": "ml",
+        "ounce": "oz",
+        "oz": "oz",
+        "pack": "pack",
+        "package": "package",
+        "packet": "packet",
+        "piece": "piece",
+        "pinch": "pinch",
+        "pkg": "package",
+        "pouch": "pouch",
+        "pound": "lb",
+        "sheet": "sheet",
+        "slice": "slice",
+        "splash": "splash",
+        "sprig": "sprig",
+        "stalk": "stalk",
+        "stick": "stick",
+        "tablespoon": "tbsp",
+        "tbsp": "tbsp",
+        "teaspoon": "tsp",
+        "tsp": "tsp",
+        "tub": "tub",
+        "tube": "tube",
+        "wedge": "wedge",
+    }
 
 def extract_unit(ingredient):
     words = ingredient.split()
 
-    if len(words) == 0:
+    if not words:
         return None
 
-    first_word = words[0]
-    clean_word = first_word.rstrip(".,;:").lower()
+    first_word = words[0].lower().strip(".,")
+    first_word = singularize_unit(first_word)
 
-    unit_map = {
-        "tsp": "tsp",
-        "tsps": "tsp",
-        "teaspoon": "tsp",
-        "teaspoons": "tsp",
-        "tbsp": "tbsp",
-        "tbsps": "tbsp",
-        "tablespoon": "tbsp",
-        "tablespoons": "tbsp",
-        "c": "cup",
-        "cup": "cup",
-        "cups": "cup",
-        "lb": "lb",
-        "lbs": "lb",
-        "pound": "lb",
-        "pounds": "lb"
-    }
-
-    if clean_word in unit_map:
-        return unit_map[clean_word]
-
-    return None
+    return unit_map.get(first_word)
 
 def remove_leading_unit(ingredient):
     words = ingredient.split()
 
-    if len(words) <= 1:
+    if not words:
         return ingredient
 
-    unit = extract_unit(ingredient)
+    first_word = words[0].lower().strip(".,")
+    first_word = singularize_unit(first_word)
 
-    if unit is not None:
+    if first_word in unit_map:
         return " ".join(words[1:])
 
     return ingredient
