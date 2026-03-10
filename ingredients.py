@@ -1,6 +1,33 @@
 from fractions import Fraction
 import re
 
+INVALID_STANDALONE_INGREDIENTS = {
+    "skin-on",
+    "skin off",
+    "skin-on bone-in",
+    "bone-in",
+    "boneless",
+    "boneless skinless",
+    "ground",
+    "fresh",
+    "frozen"
+}
+
+LEADING_CONTAINER_WORDS = {
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+}
+
 LEADING_DESCRIPTORS = {
     "beaten",
     "boiling",
@@ -52,6 +79,27 @@ LEADING_DESCRIPTORS = {
     "zested"
 }
 
+PACKAGING_WORDS = {
+    "bag", "bags",
+    "box", "boxes",
+    "can", "cans",
+    "container", "containers",
+    "jar", "jars",
+    "package", "packages",
+    "pack", "packs",
+    "packet", "packets",
+    "pouch", "pouches",
+    "ounce", "ounces",
+    "oz",
+    "oz.",
+    "lb",
+    "lb.",
+    "lbs",
+    "lbs.",
+    "pound",
+    "pounds"
+}
+
 UNICODE_FRACTIONS = {
         "¼": "1/4",
         "½": "1/2",
@@ -63,6 +111,20 @@ UNICODE_FRACTIONS = {
         "⅝": "5/8",
         "⅞": "7/8"
     }
+
+WRITTEN_FRACTION_PREFIXES = {
+    "half of an ": "1/2 ",
+    "half of a ": "1/2 ",
+    "half an ": "1/2 ",
+    "half a ": "1/2 ",
+    "a half ": "1/2 ",
+    "quarter of an ": "1/4 ",
+    "quarter of a ": "1/4 ",
+    "a quarter of an ": "1/4 ",
+    "a quarter of a ": "1/4 ",
+    "quarter an ": "1/4 ",
+    "quarter a ": "1/4 ",
+}
 
 WRITTEN_NUMBERS = {
         "one": 1.0,
@@ -82,103 +144,62 @@ def add_recipe(all_recipes, recipe_data):
         all_recipes.append(recipe_data)
     return all_recipes
 
-def normalize_ingredient(ingredient):
-    normalized = ingredient.strip().lower()
-    normalized = normalized.replace("&nbsp;", " ")
-    normalized = normalized.replace("‐", "-")
-    normalized = normalized.replace("‒", "-")
-    normalized = normalized.replace("–", "-")
-    normalized = normalized.replace("—", "-")
-    normalized = normalized.replace("−", "-")
-    return normalized
+def normalize_text(text):
+    normalized = text.strip().lower()
 
-def normalize_spaces(text):
-    words = text.split()
-    return " ".join(words)
+    for dash in ["‐", "‒", "–", "—", "−"]:
+        normalized = normalized.replace(dash, "-")
+
+    normalized = normalized.replace("&nbsp;", " ")
+
+    return " ".join(normalized.split())
 
 def normalize_written_fractions(text):
-    replacements = {
-        "half of an ": "1/2 ",
-        "half of a ": "1/2 ",
-        "half an ": "1/2 ",
-        "half a ": "1/2 ",
-        "a half ": "1/2 ",
-        "quarter of an ": "1/4 ",
-        "quarter of a ": "1/4 ",
-        "a quarter of an ": "1/4 ",
-        "a quarter of a ": "1/4 ",
-        "quarter an ": "1/4 ",
-        "quarter a ": "1/4 ",
-    }
+    for old, new in WRITTEN_FRACTION_PREFIXES.items():
+        if text.startswith(old):
+            return text.replace(old, new, 1)
+    return text
 
-    cleaned = text
-
-    for old, new in replacements.items():
-        if cleaned.startswith(old):
-            cleaned = cleaned.replace(old, new, 1)
-            break
-
-    return cleaned
-
-def remove_trailing_punctuation(text):
-    return text.rstrip(",.* ")
-
-def remove_comma_descriptors(text):
+def clean_ingredient_phrase(text):
     parts = [part.strip() for part in text.split(",")]
 
     if len(parts) == 1:
-        return text
+        cleaned = text
+    else:
+        first_part_words = parts[0].split()
 
-    first_part_words = parts[0].split()
+        if first_part_words and all(word in LEADING_DESCRIPTORS for word in first_part_words):
+            cleaned = " ".join(parts[:2]).strip()
+        else:
+            cleaned = parts[0]
 
-    if len(first_part_words) > 0 and all(word in LEADING_DESCRIPTORS for word in first_part_words):
-        return " ".join(parts[:2]).strip()
+    words = cleaned.split()
 
-    return parts[0]
-
-def remove_leading_descriptors(text):
-    words = text.split()
-
-    if len(words) == 0:
-        return text
-
-    while len(words) > 0 and words[0] in LEADING_DESCRIPTORS:
+    while words and words[0] in LEADING_DESCRIPTORS:
         words.pop(0)
 
-    return " ".join(words)
+    if words and words[0] == "of":
+        words.pop(0)
 
-def remove_leading_of(text):
-    if text.startswith("of "):
-        return text[3:]
-    return text
+    cleaned = " ".join(words)
 
-def remove_toppings_prefix(text):
-    if text.startswith("toppings: "):
-        return text.replace("toppings: ", "", 1)
-    return text
+    if cleaned.startswith("toppings: "):
+        cleaned = cleaned.replace("toppings: ", "", 1)
 
-def remove_trailing_prep_words(text):
-    trailing_words = {
-        "thinly",
-        "sliced",
-    }
+    trailing_words = {"thinly", "sliced"}
+    words = cleaned.split()
 
-    words = text.split()
-
-    while len(words) > 0 and words[-1] in trailing_words:
+    while words and words[-1] in trailing_words:
         words.pop()
 
-    return " ".join(words)
+    cleaned = " ".join(words)
+
+    return cleaned.rstrip(",.* ")
 
 def remove_leading_container_words(text):
-    leading_words = {
-        "one",
-        "two",
-    }
-
     words = text.split()
 
-    while len(words) > 0 and words[0] in leading_words:
+    while words and words[0] in LEADING_CONTAINER_WORDS:
         words.pop(0)
 
     return " ".join(words)
@@ -218,27 +239,6 @@ def remove_duplicate_adjacent_words(text):
 def remove_leading_packaging_words(text):
     words = text.split()
 
-    packaging_words = {
-        "bag", "bags",
-        "box", "boxes",
-        "can", "cans",
-        "container", "containers",
-        "jar", "jars",
-        "package", "packages",
-        "pack", "packs",
-        "packet", "packets",
-        "pouch", "pouches",
-        "ounce", "ounces",
-        "oz",
-        "oz.",
-        "lb",
-        "lb.",
-        "lbs",
-        "lbs.",
-        "pound",
-        "pounds"
-    }
-
     while words:
         first = words[0].lower().strip(".,")
         normalized_first = first.replace("–", "-").replace("—", "-")
@@ -251,7 +251,7 @@ def remove_leading_packaging_words(text):
             words.pop(0)
             continue
 
-        if normalized_first in packaging_words:
+        if normalized_first in PACKAGING_WORDS:
             words.pop(0)
             continue
 
@@ -259,20 +259,8 @@ def remove_leading_packaging_words(text):
 
     return " ".join(words)
 
-def is_bad_ingredient(text):
-    bad_standalones = {
-        "skin-on",
-        "skin off",
-        "skin-on bone-in",
-        "bone-in",
-        "boneless",
-        "boneless skinless",
-        "ground",
-        "fresh",
-        "frozen"
-    }
-
-    return text.strip() in bad_standalones
+def is_invalid_standalone_ingredient(text):
+    return text.strip() in INVALID_STANDALONE_INGREDIENTS
 
 def extract_quantity(ingredient):
     words = ingredient.split()
@@ -580,7 +568,7 @@ def collect_ingredients(all_recipes):
         ingredients = recipe["ingredients"]
 
         for ingredient in ingredients:
-            normalized = normalize_ingredient(ingredient)
+            normalized = normalize_text(ingredient)
             normalized = normalize_written_fractions(normalized)
             no_parentheses = remove_parenthetical_text(normalized)
             normalized_ranges = normalize_quantity_ranges(no_parentheses)
@@ -595,16 +583,12 @@ def collect_ingredients(all_recipes):
             no_unit = remove_leading_plus_quantity_phrase(no_unit)
             no_packaging = remove_leading_packaging_words(no_unit)
 
-            final_ingredient = normalize_spaces(no_packaging)
-            final_ingredient = remove_comma_descriptors(final_ingredient)
-            final_ingredient = remove_leading_descriptors(final_ingredient)
+            final_ingredient = normalize_text(no_packaging)
+            final_ingredient = clean_ingredient_phrase(final_ingredient)
             final_ingredient = remove_duplicate_adjacent_words(final_ingredient)
-            final_ingredient = remove_leading_of(final_ingredient)
-            final_ingredient = remove_toppings_prefix(final_ingredient)
             final_ingredient = remove_leading_container_words(final_ingredient)
             final_ingredient = remove_leading_packaging_phrases(final_ingredient)
-            final_ingredient = remove_trailing_prep_words(final_ingredient)
-            final_ingredient = remove_trailing_punctuation(final_ingredient)
+            final_ingredient = normalize_text(final_ingredient)
 
             if final_ingredient in {"garlic clove", "garlic cloves"}:
                 final_ingredient = "garlic"
@@ -619,7 +603,7 @@ def collect_ingredients(all_recipes):
                 print("final_ingredient:", final_ingredient)
                 print()
 
-            if final_ingredient != "" and not is_bad_ingredient(final_ingredient):
+            if final_ingredient != "" and not is_invalid_standalone_ingredient(final_ingredient):
                 all_ingredients.append((quantity, unit, final_ingredient))
 
     return all_ingredients
