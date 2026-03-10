@@ -7,6 +7,10 @@ def normalize_ingredient(ingredient):
     normalized = ingredient.strip().lower()
     return normalized
 
+def normalize_spaces(text):
+    words = text.split()
+    return " ".join(words)
+
 def remove_filler_words(ingredient):
     filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
 
@@ -63,7 +67,8 @@ def collect_ingredients(all_recipes):
             no_parentheses = remove_parentheses(normalized)
             cleaned = remove_filler_words(no_parentheses)
             no_amount = remove_leading_amount(cleaned)
-            all_ingredients.append(no_amount)
+            final_ingredient = normalize_spaces(no_amount)
+            all_ingredients.append(final_ingredient)
 
 
     return all_ingredients
