@@ -61,7 +61,6 @@ def normalize_ingredient(ingredient):
     normalized = ingredient.strip().lower()
     normalized = normalized.replace("&nbsp;", " ")
     normalized = normalized.replace("‐", "-")
-    normalized = normalized.replace("-", "-")
     normalized = normalized.replace("‒", "-")
     normalized = normalized.replace("–", "-")
     normalized = normalized.replace("—", "-")
@@ -176,9 +175,6 @@ def remove_leading_packaging_phrases(text):
         cleaned = re.sub(pattern, '', cleaned).strip()
 
     return cleaned
-
-print(remove_leading_packaging_phrases("28-ounce can fire roasted crushed tomatoes"))
-print(remove_leading_packaging_phrases("14-ounce cans beans"))
 
 def remove_duplicate_adjacent_words(text):
     words = text.split()
