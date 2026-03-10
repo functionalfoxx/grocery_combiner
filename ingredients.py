@@ -14,6 +14,9 @@ def normalize_spaces(text):
     words = text.split()
     return " ".join(words)
 
+def remove_trailing_punctuation(text):
+    return text.rstrip(",.* ")
+
 def extract_quantity(ingredient):
     words = ingredient.split()
 
@@ -146,6 +149,7 @@ def collect_ingredients(all_recipes):
             unit = extract_unit(no_amount)
             no_unit = remove_leading_unit(no_amount)
             final_ingredient = normalize_spaces(no_unit)
+            final_ingredient = remove_trailing_punctuation(final_ingredient)
 
             if final_ingredient != "":
                 all_ingredients.append((quantity, unit, final_ingredient))
