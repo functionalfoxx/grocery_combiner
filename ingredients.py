@@ -29,3 +29,12 @@ def count_ingredients(all_ingredients):
             ingredient_counts[ingredient] = 1
     
     return ingredient_counts
+
+def display_grocery_list(ingredient_counts):
+    print ("\nGROCERY LIST\n")
+
+    for ingredient in sorted(ingredient_counts):
+        count = ingredient_counts[ingredient]
+        print(count, "-", ingredient)
+
+    print()

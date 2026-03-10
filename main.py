@@ -1,5 +1,5 @@
 from scraper import get_recipe
-from ingredients import add_recipe, collect_ingredients, count_ingredients
+from ingredients import add_recipe, collect_ingredients, count_ingredients, display_grocery_list
 
 all_recipes = []
 
@@ -26,7 +26,4 @@ if len(all_recipes) == 0:
 else:
     all_ingredients = collect_ingredients(all_recipes)
     ingredient_counts = count_ingredients(all_ingredients)
-
-    for ingredient in sorted(ingredient_counts):
-        count = ingredient_counts[ingredient]
-        print(count, "-", ingredient)
+    display_grocery_list(ingredient_counts)
