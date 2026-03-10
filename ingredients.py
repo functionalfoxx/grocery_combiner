@@ -28,9 +28,29 @@ def remove_leading_amount(ingredient):
     first_word = words [0]
 
     if first_word [0].isdigit():
-        return " ".join(words[1:])
-    
+
+        if first_word[0].isdigit():
+            if len(words) >= 3:
+                return " ".join(words[2:])
+            if len(words) == 2:
+                return words[1]
+            return ""
+        
     return ingredient
+
+def remove_parentheses(ingredient):
+    result = ""
+    skip = False
+
+    for char in ingredient:
+        if char == "(":
+            skip = True
+        elif char == ")":
+            skip = False
+        elif not skip:
+            result += char
+
+    return result.strip()
 
 def collect_ingredients(all_recipes):
     all_ingredients = []
@@ -40,20 +60,16 @@ def collect_ingredients(all_recipes):
 
         for ingredient in ingredients:
             normalized = normalize_ingredient(ingredient)
-            all_ingredients.append(normalized)
-            cleaned = remove_filler_words(normalized)
+            no_parentheses = remove_parentheses(normalized)
+            cleaned = remove_filler_words(no_parentheses)
             no_amount = remove_leading_amount(cleaned)
-            all_ingredients.append(cleaned)
+            all_ingredients.append(no_amount)
+
 
     return all_ingredients
 
 def get_ingredient_name(ingredient):
-    words = ingredient.split()
-
-    if len(words) == 0:
-        return ""
-
-    return words[-1]
+    return ingredient.strip()
 
 def singularize_ingredient(name):
     if name.endswith("s"):
@@ -82,4 +98,3 @@ def display_grocery_list(ingredient_counts):
         print(ingredient, "-", count)
 
     print()
-
