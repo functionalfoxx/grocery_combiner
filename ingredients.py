@@ -371,6 +371,18 @@ def remove_brackets(ingredient):
 
     return result.strip()
 
+def normalize_quantity_ranges(ingredient):
+    pattern = r'^\s*(\d+(?:\.\d+)?|\d+/\d+|[¼½¾⅓⅔⅛⅜⅝⅞])\s*(?:to|-|–|—)\s*(\d+(?:\.\d+)?|\d+/\d+|[¼½¾⅓⅔⅛⅜⅝⅞])\s+'
+    return re.sub(pattern, r'\1 ', ingredient).strip()
+
+def remove_repeated_leading_word(text):
+    words = text.split()
+
+    if len(words) >= 2 and words[0] == words[1]:
+        return " ".join(words[1:])
+
+    return text
+
 def collect_ingredients(all_recipes):
     all_ingredients = []
 
@@ -382,11 +394,13 @@ def collect_ingredients(all_recipes):
             normalized = normalize_ingredient(ingredient)
             no_parentheses = remove_parentheses(normalized)
             no_brackets = remove_brackets(no_parentheses)
-            cleaned = remove_filler_words(no_brackets)
+            normalized_ranges = normalize_quantity_ranges(no_brackets)
+            cleaned = remove_filler_words(normalized_ranges)
             no_amount = remove_leading_quantity(cleaned)
             unit = extract_unit(cleaned)
             no_unit = remove_leading_unit(no_amount)
             final_ingredient = normalize_spaces(no_unit)
+            final_ingredient = remove_repeated_leading_word(final_ingredient)
             final_ingredient = remove_comma_descriptors(final_ingredient)
             final_ingredient = remove_leading_descriptors(final_ingredient)
             final_ingredient = remove_trailing_punctuation(final_ingredient)
