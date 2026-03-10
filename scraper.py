@@ -91,13 +91,4 @@ def get_recipe(url):
         "ingredients": recipe.get("recipeIngredient")
     }
 
-    print(recipe_data["name"])
-    print()
-
-    if recipe_data["ingredients"]:
-        for ingredient in recipe_data["ingredients"]:
-            print(ingredient)
-    else:
-        print("No ingredients found in recipe schema.")
-
     return recipe_data

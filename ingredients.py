@@ -11,3 +11,7 @@ def collect_ingredients(all_recipes):
         all_ingredients.extend(ingredients)
 
     return all_ingredients
+
+def display_ingredients(all_ingredients):
+    for ingredient in all_ingredients:
+        print("-", ingredient)
