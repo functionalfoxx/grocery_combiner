@@ -1,6 +1,87 @@
 from fractions import Fraction
 import re
 
+FILLER_PHRASES = [
+    "about",
+    "approximately",
+    "as desired",
+    "as needed",
+    "at room temperature",
+    "divided",
+    "extra for garnish",
+    "extra for serving",
+    "extra for topping",
+    "for garnish",
+    "for serving",
+    "for topping",
+    "if desired",
+    "more to taste",
+    "or frozen",
+    "or more",
+    "or more to taste",
+    "plus a little extra",
+    "plus a little extra for frying",
+    "plus more",
+    "plus more for serving",
+    "plus more to taste",
+    "such as",
+    "to brush",
+    "to coat",
+    "to drizzle",
+    "to dust",
+    "to finish",
+    "to garnish",
+    "to grease",
+    "to line",
+    "to serve",
+    "to sprinkle",
+    "to taste",
+    "to top"
+]
+
+FILLER_WORDS = [
+    "extra",
+    "garnish",
+    "optional",
+    "roughly",
+    "such",
+]
+
+INGREDIENTS_NO_SINGULARIZE = {
+    "baby potatoes",
+    "bay leaves",
+    "beans",
+    "black beans",
+    "breadcrumbs",
+    "chickpeas",
+    "chips",
+    "chocolate chips",
+    "crushed tomatoes",
+    "diced tomatoes",
+    "fire roasted crushed tomatoes",
+    "fire roasted diced tomatoes",
+    "fire roasted tomatoes",
+    "garbanzo beans",
+    "graham cracker crumbs",
+    "green peas",
+    "greens",
+    "hash browns",
+    "kidney beans",
+    "milk chocolate chips",
+    "mixed greens",
+    "oats",
+    "peanut butter chips",
+    "peas",
+    "pinto beans",
+    "potatoes",
+    "rolled oats",
+    "semisweet chocolate chips",
+    "snap peas",
+    "tomatoes",
+    "white beans",
+    "yukon gold potatoes",
+}
+
 INVALID_STANDALONE_INGREDIENTS = {
     "skin-on",
     "skin off",
@@ -79,6 +160,12 @@ LEADING_DESCRIPTORS = {
     "zested"
 }
 
+PACKAGING_PHRASE_PATTERNS = [
+    r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*(?:ounce|oz\.?|gram)\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+    r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?(?:ounce|oz\.?|gram)\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+    r'^(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+]
+
 PACKAGING_WORDS = {
     "bag", "bags",
     "box", "boxes",
@@ -111,6 +198,62 @@ UNICODE_FRACTIONS = {
         "⅝": "5/8",
         "⅞": "7/8"
     }
+
+UNIT_MAP = {
+    "bag": "bag",
+    "bottle": "bottle",
+    "box": "box",
+    "bulb": "bulb",
+    "bunch": "bunch",
+    "c": "cup",
+    "can": "can",
+    "carton": "carton",
+    "clove": "clove",
+    "container": "container",
+    "cup": "cup",
+    "dash": "dash",
+    "drizzle": "drizzle",
+    "drop": "drop",
+    "ear": "ear",
+    "g": "g",
+    "gram": "g",
+    "head": "head",
+    "jar": "jar",
+    "kg": "kg",
+    "kilogram": "kg",
+    "l": "l",
+    "lb": "lb",
+    "liter": "l",
+    "litre": "l",
+    "loaf": "loaf",
+    "ml": "ml",
+    "milliliter": "ml",
+    "millilitre": "ml",
+    "ounce": "oz",
+    "oz": "oz",
+    "pack": "pack",
+    "package": "package",
+    "packet": "packet",
+    "piece": "piece",
+    "pinch": "pinch",
+    "pkg": "package",
+    "pouch": "pouch",
+    "pound": "lb",
+    "rib": "rib",
+    "sheet": "sheet",
+    "slice": "slice",
+    "splash": "splash",
+    "sprig": "sprig",
+    "stalk": "stalk",
+    "stick": "stick",
+    "tablespoon": "tbsp",
+    "tbsp": "tbsp",
+    "teaspoon": "tsp",
+    "tsp": "tsp",
+    "tub": "tub",
+    "tube": "tube",
+    "wedge": "wedge",
+}
 
 WRITTEN_FRACTION_PREFIXES = {
     "half of an ": "1/2 ",
@@ -205,20 +348,10 @@ def remove_leading_container_words(text):
     return " ".join(words)
 
 def remove_leading_packaging_phrases(text):
-    patterns = [
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*ounce\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?ounce\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*gram\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?gram\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-        r'^(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
-    ]
-
     cleaned = text
 
-    for pattern in patterns:
-        cleaned = re.sub(pattern, '', cleaned).strip()
+    for pattern in PACKAGING_PHRASE_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned).strip()
 
     return cleaned
 
@@ -367,62 +500,6 @@ def singularize_unit(word):
         return word[:-1]
     return word
 
-unit_map = {
-        "bag": "bag",
-        "bottle": "bottle",
-        "box": "box",
-        "bulb": "bulb",
-        "bunch": "bunch",
-        "c": "cup",
-        "can": "can",
-        "carton": "carton",
-        "clove": "clove",
-        "container": "container",
-        "cup": "cup",
-        "dash": "dash",
-        "drizzle": "drizzle",
-        "drop": "drop",
-        "ear": "ear",
-        "g": "g",
-        "gram": "g",
-        "head": "head",
-        "jar": "jar",
-        "kg": "kg",
-        "kilogram": "kg",
-        "l": "l",
-        "lb": "lb",
-        "liter": "l",
-        "litre": "l",
-        "loaf": "loaf",
-        "ml": "ml",
-        "milliliter": "ml",
-        "millilitre": "ml",
-        "ounce": "oz",
-        "oz": "oz",
-        "pack": "pack",
-        "package": "package",
-        "packet": "packet",
-        "piece": "piece",
-        "pinch": "pinch",
-        "pkg": "package",
-        "pouch": "pouch",
-        "pound": "lb",
-        "rib": "rib",
-        "sheet": "sheet",
-        "slice": "slice",
-        "splash": "splash",
-        "sprig": "sprig",
-        "stalk": "stalk",
-        "stick": "stick",
-        "tablespoon": "tbsp",
-        "tbsp": "tbsp",
-        "teaspoon": "tsp",
-        "tsp": "tsp",
-        "tub": "tub",
-        "tube": "tube",
-        "wedge": "wedge",
-    }
-
 def extract_unit(ingredient):
     words = ingredient.split()
 
@@ -435,7 +512,7 @@ def extract_unit(ingredient):
     attached_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)([a-z]+)\.?$", first_word)
     if attached_match:
         unit_word = singularize_unit(attached_match.group(2))
-        return unit_map.get(unit_word)
+        return UNIT_MAP.get(unit_word)
 
     if len(words) > 2 and first_word in WRITTEN_NUMBERS:
         second_word = words[1].lower().strip(",")
@@ -455,26 +532,26 @@ def extract_unit(ingredient):
 
         if first_word.replace(".", "", 1).isdigit():
             if "/" in second_word or second_word in UNICODE_FRACTIONS:
-                return unit_map.get(third_word)
+                return UNIT_MAP.get(third_word)
 
     if len(words) > 1:
         second_word = words[1].lower().strip(",")
         second_word = singularize_unit(second_word)
 
         if first_word.replace(".", "", 1).isdigit():
-            return unit_map.get(second_word)
+            return UNIT_MAP.get(second_word)
 
         if "/" in first_word:
-            return unit_map.get(second_word)
+            return UNIT_MAP.get(second_word)
 
         if first_word in UNICODE_FRACTIONS:
-            return unit_map.get(second_word)
+            return UNIT_MAP.get(second_word)
 
         if first_word in WRITTEN_NUMBERS:
-            return unit_map.get(second_word)
+            return UNIT_MAP.get(second_word)
 
     first_word = singularize_unit(first_word)
-    return unit_map.get(first_word)
+    return UNIT_MAP.get(first_word)
 
 def remove_leading_unit(ingredient):
     words = ingredient.split()
@@ -485,71 +562,23 @@ def remove_leading_unit(ingredient):
     first_word = words[0].lower().strip(",.")
     first_word = singularize_unit(first_word)
 
-    if first_word in unit_map:
+    if first_word in UNIT_MAP:
         return " ".join(words[1:])
 
     return ingredient
 
 def remove_filler_words(ingredient):
-    filler_phrases = [
-        "about",
-        "approximately",
-        "as desired",
-        "as needed",
-        "at room temperature",
-        "divided",
-        "extra for garnish",
-        "extra for serving",
-        "extra for topping",
-        "for garnish",
-        "for serving",
-        "for topping",
-        "if desired",
-        "more to taste",
-        "or frozen",
-        "or more",
-        "or more to taste",
-        "plus a little extra",
-        "plus a little extra for frying",
-        "plus more",
-        "plus more for serving",
-        "plus more to taste",
-        "such as",
-        "to brush",
-        "to coat",
-        "to drizzle",
-        "to dust",
-        "to finish",
-        "to garnish",
-        "to grease",
-        "to line",
-        "to serve",
-        "to sprinkle",
-        "to taste",
-        "to top"
-    ]
-
     cleaned = ingredient
 
-    for phrase in filler_phrases:
+    for phrase in FILLER_PHRASES:
         cleaned = cleaned.replace(phrase, "")
 
     words = cleaned.split()
-    filler_words = [
-        "about",
-        "approximately",
-        "divided",
-        "extra",
-        "garnish",
-        "optional",
-        "roughly",
-        "such",
-    ]
 
     cleaned_words = []
 
     for word in words:
-        if word not in filler_words:
+        if word not in FILLER_WORDS:
             cleaned_words.append(word)
 
     return " ".join(cleaned_words)
@@ -612,42 +641,7 @@ def singularize_ingredient(name):
     if " and " in name:
         return name
 
-    no_change = {
-        "baby potatoes",
-        "bay leaves",
-        "beans",
-        "black beans",
-        "breadcrumbs",
-        "chickpeas",
-        "chips",
-        "chocolate chips",
-        "crushed tomatoes",
-        "diced tomatoes",
-        "fire roasted crushed tomatoes",
-        "fire roasted diced tomatoes",
-        "fire roasted tomatoes",
-        "garbanzo beans",
-        "graham cracker crumbs",
-        "green peas",
-        "greens",
-        "hash browns",
-        "kidney beans",
-        "milk chocolate chips",
-        "mixed greens",
-        "oats",
-        "peanut butter chips",
-        "peas",
-        "pinto beans",
-        "potatoes",
-        "rolled oats",
-        "semisweet chocolate chips",
-        "snap peas",
-        "tomatoes",
-        "white beans",
-        "yukon gold potatoes",
-    }
-
-    if name in no_change:
+    if name in INGREDIENTS_NO_SINGULARIZE:
         return name
 
     if name.endswith("ies"):
