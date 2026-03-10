@@ -38,10 +38,10 @@ def extract_quantity(ingredient):
     }
 
     if first_word in unicode_fractions:
-        return float(Fraction(unicode_fractions[first_word]))
+        return round(float(Fraction(unicode_fractions[first_word])), 2)
 
     if "/" in first_word:
-        return float(Fraction(first_word))
+        return round(float(Fraction(first_word)), 2)
     
     try:
         return float(first_word)
