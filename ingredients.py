@@ -13,13 +13,19 @@ def collect_ingredients(all_recipes):
     for recipe in all_recipes:
         ingredients = recipe["ingredients"]
 
-            for ingredient in ingredients:
-                normalized = normalize_ingredient(ingredient)
-                all_ingredients.append(normalized)
+        for ingredient in ingredients:
+            normalized = normalize_ingredient(ingredient)
+            all_ingredients.append(normalized)
 
     return all_ingredients
 
-def display_ingredients(all_ingredients):
+def count_ingredients(all_ingredients):
+    ingredient_counts = {}
+
     for ingredient in all_ingredients:
-        print("-", ingredient)
-        print()
+        if ingredient in ingredient_counts:
+            ingredient_counts[ingredient] += 1
+        else:
+            ingredient_counts[ingredient] = 1
+    
+    return ingredient_counts
