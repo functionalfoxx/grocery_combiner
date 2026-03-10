@@ -92,6 +92,19 @@ def extract_unit(ingredient):
 
     return None
 
+def remove_leading_unit(ingredient):
+    words = ingredient.split()
+
+    if len(words) <= 1:
+        return ingredient
+
+    unit = extract_unit(ingredient)
+
+    if unit is not None:
+        return " ".join(words[1:])
+
+    return ingredient
+
 def remove_filler_words(ingredient):
     filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
 
@@ -131,7 +144,8 @@ def collect_ingredients(all_recipes):
             cleaned = remove_filler_words(no_parentheses)
             no_amount = remove_leading_quantity(cleaned)
             unit = extract_unit(no_amount)
-            final_ingredient = normalize_spaces(no_amount)
+            no_unit = remove_leading_unit(no_amount)
+            final_ingredient = normalize_spaces(no_unit)
 
             if final_ingredient != "":
                 all_ingredients.append((quantity, unit, final_ingredient))
