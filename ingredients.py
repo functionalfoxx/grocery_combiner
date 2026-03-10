@@ -17,6 +17,40 @@ def normalize_spaces(text):
 def remove_trailing_punctuation(text):
     return text.rstrip(",.* ")
 
+def remove_comma_descriptors(text):
+    parts = text.split(",")
+    return parts[0].strip()
+
+def remove_leading_descriptors(text):
+    words = text.split()
+
+    if len(words) == 0:
+        return text
+
+    leading_descriptors = [
+        "chopped",
+        "diced",
+        "minced",
+        "grated",
+        "sliced",
+        "halved",
+        "quartered",
+        "peeled",
+        "packed",
+        "leveled",
+        "levelled",
+        "melted",
+        "sauteed",
+        "sautéed",
+        "softened",
+        "cooled"
+    ]
+
+    if words[0] in leading_descriptors:
+        return " ".join(words[1:])
+
+    return text
+
 def extract_quantity(ingredient):
     words = ingredient.split()
 
@@ -149,6 +183,8 @@ def collect_ingredients(all_recipes):
             unit = extract_unit(no_amount)
             no_unit = remove_leading_unit(no_amount)
             final_ingredient = normalize_spaces(no_unit)
+            final_ingredient = remove_comma_descriptors(final_ingredient)
+            final_ingredient = remove_leading_descriptors(final_ingredient)
             final_ingredient = remove_trailing_punctuation(final_ingredient)
 
             if final_ingredient != "":
