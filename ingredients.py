@@ -93,7 +93,7 @@ def extract_quantity(ingredient):
     if len(words) == 0:
         return None
 
-    first_word = words[0].lower().strip(",.")
+    first_word = words[0].lower().strip(",")
 
     unicode_fractions = {
         "¼": "1/4",
@@ -153,7 +153,7 @@ def extract_quantity(ingredient):
         return None
     
 def remove_leading_quantity(ingredient):
-    pattern = r'^\s*(?:\d+(?:\.\d+)?\s*[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?(?:\s+\d+/\d+|-\d+/\d+|/\d+)?|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s*'
+    pattern = r'^\s*(?:\d+(?:\.\d+)?-[a-z]+\.?|\d+(?:\.\d+)?[a-z]+\.?|\.\d+|\d+(?:\.\d+)?\s*[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?(?:\s+\d+/\d+|-\d+/\d+|/\d+)?|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s*'
     return re.sub(pattern, '', ingredient).strip()
 
 def singularize_unit(word):
@@ -229,9 +229,40 @@ def extract_unit(ingredient):
     if not words:
         return None
 
-    first_word = words[0].lower().strip(".,")
-    first_word = singularize_unit(first_word)
+    first_word = words[0].lower().strip(",")
+    attached_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)([a-z]+)\.?$", first_word)
 
+    if attached_match:
+        unit_word = singularize_unit(attached_match.group(2))
+        return unit_map.get(unit_word)
+
+    unicode_fractions = {
+        "¼", "½", "¾", "⅓", "⅔", "⅛", "⅜", "⅝", "⅞"
+    }
+
+    if len(words) > 2:
+        second_word = words[1].lower().strip(",.")
+        third_word = words[2].lower().strip(",.")
+        third_word = singularize_unit(third_word)
+
+        if first_word.replace(".", "", 1).isdigit():
+            if "/" in second_word or second_word in unicode_fractions:
+                return unit_map.get(third_word)
+
+    if len(words) > 1:
+        second_word = words[1].lower().strip(",.")
+        second_word = singularize_unit(second_word)
+
+        if first_word.replace(".", "", 1).isdigit():
+            return unit_map.get(second_word)
+
+        if "/" in first_word:
+            return unit_map.get(second_word)
+
+        if first_word in unicode_fractions:
+            return unit_map.get(second_word)
+
+    first_word = singularize_unit(first_word)
     return unit_map.get(first_word)
 
 def remove_leading_unit(ingredient):
@@ -353,7 +384,7 @@ def collect_ingredients(all_recipes):
             no_brackets = remove_brackets(no_parentheses)
             cleaned = remove_filler_words(no_brackets)
             no_amount = remove_leading_quantity(cleaned)
-            unit = extract_unit(no_amount)
+            unit = extract_unit(cleaned)
             no_unit = remove_leading_unit(no_amount)
             final_ingredient = normalize_spaces(no_unit)
             final_ingredient = remove_comma_descriptors(final_ingredient)
