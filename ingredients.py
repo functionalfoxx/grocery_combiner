@@ -80,8 +80,19 @@ def get_ingredient_name(ingredient):
     return ingredient.strip()
 
 def singularize_ingredient(name):
-    if name.endswith("s"):
-        return name [:-1]
+
+    if name.endswith("ies"):
+        return name[:-3] + "y"
+    
+    if name.endswith("oes"):
+        return name[:-2]
+    
+    if name.endswith("ves"):
+        return name[:-3] + "f"
+
+    if name.endswith("s") and not name.endswith("ss"):
+        return name[:-1]
+
     return name
 
 def count_ingredients(all_ingredients):
@@ -99,7 +110,7 @@ def count_ingredients(all_ingredients):
     return ingredient_counts
 
 def display_grocery_list(ingredient_counts):
-    print ("\nGROCERY LIST\n")
+    print("\nGROCERY LIST\n")
 
     for ingredient in sorted(ingredient_counts):
         count = ingredient_counts[ingredient]
