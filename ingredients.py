@@ -3,9 +3,11 @@ import re
 
 leading_descriptors = {
     "beaten",
+    "boiling",
     "boneless",
     "chilled",
     "chopped",
+    "cold",
     "cooled",
     "crushed",
     "defrosted",
@@ -35,10 +37,14 @@ leading_descriptors = {
     "sauteed",
     "sautéed",
     "shredded",
+    "skin-on",
+    "skin on",
     "skinless",
     "sliced",
     "small",
     "softened",
+    "steamed",
+    "stemmed",
     "thinly",
     "toasted",
     "trimmed",
@@ -86,6 +92,118 @@ def remove_leading_descriptors(text):
         words.pop(0)
 
     return " ".join(words)
+
+def remove_leading_of(text):
+    if text.startswith("of "):
+        return text[3:]
+    return text
+
+def remove_toppings_prefix(text):
+    if text.startswith("toppings: "):
+        return text.replace("toppings: ", "", 1)
+    return text
+
+def remove_trailing_prep_words(text):
+    trailing_words = {
+        "thinly",
+        "sliced",
+    }
+
+    words = text.split()
+
+    while len(words) > 0 and words[-1] in trailing_words:
+        words.pop()
+
+    return " ".join(words)
+
+def remove_leading_container_words(text):
+    leading_words = {
+        "one",
+        "two",
+    }
+
+    words = text.split()
+
+    while len(words) > 0 and words[0] in leading_words:
+        words.pop(0)
+
+    return " ".join(words)
+
+def remove_leading_packaging_phrases(text):
+    patterns = [
+        r'^\d+(?:\.\d+)?[- ]?oz\.?\s+',
+        r'^\d+(?:\.\d+)?[- ]?ounce\s+',
+        r'^\d+(?:\.\d+)?[- ]?ounces\s+',
+        r'^\d+(?:\.\d+)?\s*-\s*ounce\s+',
+        r'^\d+(?:\.\d+)?\s*-\s*oz\.?\s+',
+        r'^(?:can|cans|container|containers|package|packages)\s+',
+    ]
+
+    cleaned = text
+
+    for pattern in patterns:
+        cleaned = re.sub(pattern, '', cleaned).strip()
+
+    return cleaned
+
+def remove_duplicate_adjacent_words(text):
+    words = text.split()
+
+    if not words:
+        return text
+
+    cleaned_words = [words[0]]
+
+    for word in words[1:]:
+        if word != cleaned_words[-1]:
+            cleaned_words.append(word)
+
+    return " ".join(cleaned_words)
+
+def remove_leading_packaging_words(text):
+    words = text.split()
+
+    packaging_words = {
+        "bag", "bags",
+        "box", "boxes",
+        "can", "cans",
+        "container", "containers",
+        "jar", "jars",
+        "package", "packages",
+        "pack", "packs",
+        "packet", "packets",
+        "pouch", "pouches",
+        "ounce", "ounces",
+        "oz",
+        "lb",
+        "lbs",
+        "pound",
+        "pounds"
+    }
+
+    while words:
+        first = words[0].lower().strip(".,-")
+        if first in packaging_words or re.match(r"^\d+(?:\.\d+)?(?:-\w+)?$", first):
+            words.pop(0)
+        else:
+            break
+
+    return " ".join(words)
+
+def is_bad_ingredient(text):
+    bad_standalones = {
+        "skin-on",
+        "skin off",
+        "skin-on bone-in",
+        "bone-in",
+        "boneless",
+        "boneless skinless",
+        "ground",
+        "fresh",
+        "frozen"
+    }
+
+    return text.strip() in bad_standalones
 
 def extract_quantity(ingredient):
     words = ingredient.split()
@@ -399,13 +517,19 @@ def collect_ingredients(all_recipes):
             no_amount = remove_leading_quantity(cleaned)
             unit = extract_unit(cleaned)
             no_unit = remove_leading_unit(no_amount)
-            final_ingredient = normalize_spaces(no_unit)
-            final_ingredient = remove_repeated_leading_word(final_ingredient)
+            no_packaging = remove_leading_packaging_words(no_unit)
+            final_ingredient = normalize_spaces(no_packaging)
             final_ingredient = remove_comma_descriptors(final_ingredient)
             final_ingredient = remove_leading_descriptors(final_ingredient)
+            final_ingredient = remove_leading_packaging_phrases(final_ingredient)
+            final_ingredient = remove_duplicate_adjacent_words(final_ingredient)
+            final_ingredient = remove_leading_of(final_ingredient)
+            final_ingredient = remove_toppings_prefix(final_ingredient)
+            final_ingredient = remove_leading_container_words(final_ingredient)
+            final_ingredient = remove_trailing_prep_words(final_ingredient)
             final_ingredient = remove_trailing_punctuation(final_ingredient)
 
-            if final_ingredient != "":
+            if final_ingredient != "" and not is_bad_ingredient(final_ingredient):
                 all_ingredients.append((quantity, unit, final_ingredient))
 
     return all_ingredients
