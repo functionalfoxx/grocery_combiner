@@ -182,19 +182,28 @@ def count_ingredients(all_ingredients):
         quantity, unit, ingredient = item
         name = get_ingredient_name(ingredient)
         name = singularize_ingredient(name)
+        key = (name, unit)
 
-        if name in ingredient_counts:
-            ingredient_counts[name] += 1
+        if quantity is None:
+            quantity = 1
+
+        if key in ingredient_counts:
+            ingredient_counts[key] += quantity
+            
         else:
-            ingredient_counts[name] = 1
-    
+            ingredient_counts[key] = quantity
+
     return ingredient_counts
 
 def display_grocery_list(ingredient_counts):
     print("\nGROCERY LIST\n")
 
-    for ingredient in sorted(ingredient_counts):
-        count = ingredient_counts[ingredient]
-        print(ingredient, "-", count)
+    for (ingredient, unit) in sorted(ingredient_counts):
+        quantity = round(ingredient_counts[(ingredient, unit)], 2)
+
+        if unit is None:
+            print(quantity, ingredient)
+        else:
+            print(quantity, unit, ingredient)
 
     print()
