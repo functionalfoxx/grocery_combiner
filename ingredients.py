@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 def add_recipe(all_recipes, recipe_data):
     if recipe_data is not None:
         all_recipes.append(recipe_data)
@@ -10,6 +12,37 @@ def normalize_ingredient(ingredient):
 def normalize_spaces(text):
     words = text.split()
     return " ".join(words)
+
+def extract_quantity(ingredient):
+    words = ingredient.split()
+
+    if len(words) == 0:
+        return None
+
+    first_word = words[0]
+
+    unicode_fractions = {
+        "¼": "1/4",
+        "½": "1/2",
+        "¾": "3/4",
+        "⅓": "1/3",
+        "⅔": "2/3",
+        "⅛": "1/8",
+        "⅜": "3/8",
+        "⅝": "5/8",
+        "⅞": "7/8"
+    }
+
+    if first_word in unicode_fractions:
+        return float(Fraction(unicode_fractions[first_word]))
+
+    if "/" in first_word:
+        return float(Fraction(first_word))
+    
+    try:
+        return float(first_word)
+    except ValueError:
+        return None
 
 def remove_filler_words(ingredient):
     filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
