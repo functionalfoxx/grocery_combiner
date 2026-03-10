@@ -7,6 +7,7 @@ def add_recipe(all_recipes, recipe_data):
 
 def normalize_ingredient(ingredient):
     normalized = ingredient.strip().lower()
+    normalized = normalized.replace("&nbsp;", " ")
     return normalized
 
 def normalize_spaces(text):
