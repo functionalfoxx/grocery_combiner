@@ -37,11 +37,12 @@ def count_ingredients(all_ingredients):
 
     for ingredient in all_ingredients:
         name = get_ingredient_name(ingredient)
+        name = singularize_ingredient(name)
 
-        if ingredient in ingredient_counts:
-            ingredient_counts[ingredient] += 1
+        if name in ingredient_counts:
+            ingredient_counts[name] += 1
         else:
-            ingredient_counts[ingredient] = 1
+            ingredient_counts[name] = 1
     
     return ingredient_counts
 
