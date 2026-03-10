@@ -60,6 +60,12 @@ def add_recipe(all_recipes, recipe_data):
 def normalize_ingredient(ingredient):
     normalized = ingredient.strip().lower()
     normalized = normalized.replace("&nbsp;", " ")
+    normalized = normalized.replace("‐", "-")
+    normalized = normalized.replace("-", "-")
+    normalized = normalized.replace("‒", "-")
+    normalized = normalized.replace("–", "-")
+    normalized = normalized.replace("—", "-")
+    normalized = normalized.replace("−", "-")
     return normalized
 
 def normalize_spaces(text):
@@ -131,12 +137,11 @@ def remove_leading_container_words(text):
 
 def remove_leading_packaging_phrases(text):
     patterns = [
-        r'^\d+(?:\.\d+)?[- ]?oz\.?\s+',
-        r'^\d+(?:\.\d+)?[- ]?ounce\s+',
-        r'^\d+(?:\.\d+)?[- ]?ounces\s+',
-        r'^\d+(?:\.\d+)?\s*-\s*ounce\s+',
-        r'^\d+(?:\.\d+)?\s*-\s*oz\.?\s+',
-        r'^(?:can|cans|container|containers|package|packages)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*ounce\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?\s*-\s*oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?ounce\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^\d+(?:\.\d+)?(?:-\d+/\d+)?[- ]?oz\.?\s+(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
+        r'^(?:can|cans|container|containers|package|packages|pack|packs|jar|jars|box|boxes|bag|bags)\s+',
     ]
 
     cleaned = text
@@ -145,6 +150,9 @@ def remove_leading_packaging_phrases(text):
         cleaned = re.sub(pattern, '', cleaned).strip()
 
     return cleaned
+
+print(remove_leading_packaging_phrases("28-ounce can fire roasted crushed tomatoes"))
+print(remove_leading_packaging_phrases("14-ounce cans beans"))
 
 def remove_duplicate_adjacent_words(text):
     words = text.split()
@@ -175,18 +183,32 @@ def remove_leading_packaging_words(text):
         "pouch", "pouches",
         "ounce", "ounces",
         "oz",
+        "oz.",
         "lb",
+        "lb.",
         "lbs",
+        "lbs.",
         "pound",
         "pounds"
     }
 
     while words:
-        first = words[0].lower().strip(".,-")
-        if first in packaging_words or re.match(r"^\d+(?:\.\d+)?(?:-\w+)?$", first):
+        first = words[0].lower().strip(".,")
+        normalized_first = first.replace("–", "-").replace("—", "-")
+
+        if re.match(r"^\d+(?:\.\d+)?(?:-\d+/\d+)?(?:-(?:ounce|ounces|oz|lb|lbs|pound|pounds))$", normalized_first):
             words.pop(0)
-        else:
-            break
+            continue
+
+        if re.match(r"^\d+(?:\.\d+)?$", normalized_first):
+            words.pop(0)
+            continue
+
+        if normalized_first in packaging_words:
+            words.pop(0)
+            continue
+
+        break
 
     return " ".join(words)
 
@@ -211,7 +233,18 @@ def extract_quantity(ingredient):
     if len(words) == 0:
         return None
 
-    first_word = words[0].lower().strip(",")
+    written_numbers = {
+        "one": 1.0,
+        "two": 2.0,
+        "three": 3.0,
+        "four": 4.0,
+        "five": 5.0,
+        "six": 6.0,
+        "seven": 7.0,
+        "eight": 8.0,
+        "nine": 9.0,
+        "ten": 10.0
+    }
 
     unicode_fractions = {
         "¼": "1/4",
@@ -224,6 +257,25 @@ def extract_quantity(ingredient):
         "⅝": "5/8",
         "⅞": "7/8"
     }
+
+    first_word = words[0].lower().strip(",.")
+    first_word = first_word.replace("–", "-").replace("—", "-")
+
+    if len(words) > 2 and first_word in written_numbers:
+        second_word = words[1].lower().strip(",.")
+        third_word = words[2].lower().strip(",.")
+        second_word = second_word.replace("–", "-").replace("—", "-")
+
+        ounce_match = re.match(r"^(\d+(?:\.\d+)?)-ounce$", second_word)
+        oz_match = re.match(r"^(\d+(?:\.\d+)?)-oz$", second_word)
+
+        if ounce_match and third_word in {"can", "cans"}:
+            package_size = float(ounce_match.group(1))
+            return written_numbers[first_word] * package_size
+
+        if oz_match and third_word in {"can", "cans"}:
+            package_size = float(oz_match.group(1))
+            return written_numbers[first_word] * package_size
 
     attached_match = re.match(r"^(\d+(?:\.\d+)?)([a-z]+)$", first_word)
     if attached_match:
@@ -268,11 +320,20 @@ def extract_quantity(ingredient):
     try:
         return float(first_word)
     except ValueError:
-        return None
+        pass
+
+    if first_word in written_numbers:
+        return written_numbers[first_word]
+
+    return None
     
 def remove_leading_quantity(ingredient):
-    pattern = r'^\s*(?:\d+(?:\.\d+)?-[a-z]+\.?|\d+(?:\.\d+)?[a-z]+\.?|\.\d+|\d+(?:\.\d+)?\s*[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?(?:\s+\d+/\d+|-\d+/\d+|/\d+)?|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])\s*'
+    pattern = r'^\s*(?:(?:plus\s+)?\d+(?:\.\d+)?\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+and\s+\d+/\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+and\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+\d+/\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?-\d+/\d+\s+|(?:plus\s+)?\d+/\d+\s+|(?:plus\s+)?[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]\s+|(?:plus\s+)?\d+(?:\.\d+)?-[a-z]+\.?\s+|(?:plus\s+)?\d+(?:\.\d+)?[a-z]+\.?\s+|(?:plus\s+)?\.\d+\s+|(?:plus\s+)?\d+(?:\.\d+)?\s+)'
     return re.sub(pattern, '', ingredient).strip()
+
+def remove_leading_plus_quantity_phrase(text):
+    pattern = r'^\s*plus\s+(?:\d+(?:\.\d+)?\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?\s+and\s+\d+/\d+|\d+(?:\.\d+)?\s+and\s+[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?\s+\d+/\d+|\d+(?:\.\d+)?-\d+/\d+|\d+/\d+|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]|\d+(?:\.\d+)?)\s+(?:[a-zA-Z]+)\s+'
+    return re.sub(pattern, '', text).strip()
 
 def singularize_unit(word):
     if word.endswith("ches"):
@@ -347,16 +408,33 @@ def extract_unit(ingredient):
     if not words:
         return None
 
-    first_word = words[0].lower().strip(",")
-    attached_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)([a-z]+)\.?$", first_word)
-
-    if attached_match:
-        unit_word = singularize_unit(attached_match.group(2))
-        return unit_map.get(unit_word)
+    written_numbers = {
+        "one", "two", "three", "four", "five",
+        "six", "seven", "eight", "nine", "ten"
+    }
 
     unicode_fractions = {
         "¼", "½", "¾", "⅓", "⅔", "⅛", "⅜", "⅝", "⅞"
     }
+
+    first_word = words[0].lower().strip(",.")
+    first_word = first_word.replace("–", "-").replace("—", "-")
+
+    attached_match = re.match(r"^(\d+(?:\.\d+)?|\.\d+)([a-z]+)\.?$", first_word)
+    if attached_match:
+        unit_word = singularize_unit(attached_match.group(2))
+        return unit_map.get(unit_word)
+
+    if len(words) > 2 and first_word in written_numbers:
+        second_word = words[1].lower().strip(",.")
+        third_word = words[2].lower().strip(",.")
+        second_word = second_word.replace("–", "-").replace("—", "-")
+
+        if re.match(r"^\d+(?:\.\d+)?-ounce$", second_word) and third_word in {"can", "cans"}:
+            return "oz"
+
+        if re.match(r"^\d+(?:\.\d+)?-oz$", second_word) and third_word in {"can", "cans"}:
+            return "oz"
 
     if len(words) > 2:
         second_word = words[1].lower().strip(",.")
@@ -378,6 +456,9 @@ def extract_unit(ingredient):
             return unit_map.get(second_word)
 
         if first_word in unicode_fractions:
+            return unit_map.get(second_word)
+
+        if first_word in written_numbers:
             return unit_map.get(second_word)
 
     first_word = singularize_unit(first_word)
@@ -508,8 +589,8 @@ def collect_ingredients(all_recipes):
         ingredients = recipe["ingredients"]
 
         for ingredient in ingredients:
-            quantity = extract_quantity(ingredient)
             normalized = normalize_ingredient(ingredient)
+            quantity = extract_quantity(normalized)
             no_parentheses = remove_parentheses(normalized)
             no_brackets = remove_brackets(no_parentheses)
             normalized_ranges = normalize_quantity_ranges(no_brackets)
@@ -517,17 +598,22 @@ def collect_ingredients(all_recipes):
             no_amount = remove_leading_quantity(cleaned)
             unit = extract_unit(cleaned)
             no_unit = remove_leading_unit(no_amount)
+            no_unit = remove_leading_plus_quantity_phrase(no_unit)
+            no_unit = remove_leading_container_words(no_unit)
             no_packaging = remove_leading_packaging_words(no_unit)
+            no_packaging = remove_leading_packaging_phrases(no_packaging)
             final_ingredient = normalize_spaces(no_packaging)
             final_ingredient = remove_comma_descriptors(final_ingredient)
             final_ingredient = remove_leading_descriptors(final_ingredient)
-            final_ingredient = remove_leading_packaging_phrases(final_ingredient)
             final_ingredient = remove_duplicate_adjacent_words(final_ingredient)
             final_ingredient = remove_leading_of(final_ingredient)
             final_ingredient = remove_toppings_prefix(final_ingredient)
-            final_ingredient = remove_leading_container_words(final_ingredient)
             final_ingredient = remove_trailing_prep_words(final_ingredient)
             final_ingredient = remove_trailing_punctuation(final_ingredient)
+
+            quantity, unit, final_ingredient = normalize_garlic_cloves(
+                quantity, unit, final_ingredient
+            )
 
             if final_ingredient != "" and not is_bad_ingredient(final_ingredient):
                 all_ingredients.append((quantity, unit, final_ingredient))
@@ -537,18 +623,67 @@ def collect_ingredients(all_recipes):
 def get_ingredient_name(ingredient):
     return ingredient.strip()
 
+def normalize_garlic_cloves(quantity, unit, ingredient):
+    if ingredient == "garlic cloves":
+        return quantity, "clove", "garlic"
+    if ingredient == "clove garlic":
+        return quantity, "clove", "garlic"
+    if ingredient == "garlic clove":
+        return quantity, "clove", "garlic"
+    return quantity, unit, ingredient
+
 def singularize_ingredient(name):
     if " and " in name:
         return name
 
+    no_change = {
+        "baby potatoes",
+        "bay leaves",
+        "beans",
+        "black beans",
+        "breadcrumbs",
+        "chickpeas",
+        "chips",
+        "chocolate chips",
+        "crushed tomatoes",
+        "diced tomatoes",
+        "fire roasted crushed tomatoes",
+        "fire roasted diced tomatoes",
+        "fire roasted tomatoes",
+        "garbanzo beans",
+        "graham cracker crumbs",
+        "green peas",
+        "greens",
+        "hash browns",
+        "kidney beans",
+        "milk chocolate chips",
+        "mixed greens",
+        "oats",
+        "peanut butter chips",
+        "peas",
+        "pinto beans",
+        "potatoes",
+        "rolled oats",
+        "semisweet chocolate chips",
+        "snap peas",
+        "tomatoes",
+        "white beans",
+        "yukon gold potatoes",
+    }
+
+    if name in no_change:
+        return name
+
     if name.endswith("ies"):
         return name[:-3] + "y"
-    
+
     if name.endswith("oes"):
         return name[:-2]
-    
+
     if name.endswith("ves"):
-        return name[:-3] + "f"
+        if name.endswith("cloves"):
+            return name[:-1]
+        return name
 
     if name.endswith("s") and not name.endswith("ss"):
         return name[:-1]
