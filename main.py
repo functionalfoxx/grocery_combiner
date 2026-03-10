@@ -27,8 +27,9 @@ else:
     all_ingredients = collect_ingredients(all_recipes)
 
     print("\nDEBUG INGREDIENT DATA\n")
-    for item in all_ingredients:
-        print(item)
+    
+    for quantity, unit, ingredient in all_ingredients:
+        print("quantity:", quantity, "| unit:", unit, "| ingredient:", ingredient)
 
     ingredient_counts = count_ingredients(all_ingredients)
     display_grocery_list(ingredient_counts)
