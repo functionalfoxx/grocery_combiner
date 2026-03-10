@@ -60,6 +60,19 @@ def remove_leading_quantity(ingredient):
     
     return ingredient
 
+def extract_unit(ingredient):
+    words = ingredient.split()
+
+    if len(words) == 0:
+        return None
+
+    first_word = words[0]
+    clean_word = first_word.rstrip(".,;:")
+
+    if clean_word in ["tsp", "tbsp", "c", "cup", "cups", "lb"]:
+        return clean_word
+
+    return None
 
 def remove_filler_words(ingredient):
     filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
@@ -72,26 +85,6 @@ def remove_filler_words(ingredient):
             cleaned_words.append(word)
 
     return " ".join(cleaned_words)
-
-def remove_leading_amount(ingredient):
-    words = ingredient.split()
-
-    if len(words) == 0:
-        return ""
-    
-    first_word = words [0]
-    fraction_chars = "¼½¾⅓⅔⅛⅜⅝⅞"
-
-    is_fraction = "/" in first_word
-
-    if first_word [0].isdigit() or first_word[0] in fraction_chars or is_fraction:
-            if len(words) >= 3:
-                return " ".join(words[2:])
-            if len(words) == 2:
-                return words[1]
-            return ""
-        
-    return ingredient
 
 def remove_parentheses(ingredient):
     result = ""
