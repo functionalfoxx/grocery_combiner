@@ -59,6 +59,24 @@ def extract_quantity(ingredient):
 
     first_word = words[0]
 
+    if "-" in first_word and "/" in first_word:
+        parts = first_word.split("-")
+        if len(parts) == 2:
+            try:
+                whole = float(parts[0])
+                fraction = float(Fraction(parts[1]))
+                return round(whole + fraction, 2)
+            except ValueError:
+                pass
+
+    if len(words) > 1 and "/" in words[1]:
+        try:
+            whole = float(words[0])
+            fraction = float(Fraction(words[1]))
+            return round(whole + fraction, 2)
+        except ValueError:
+            pass
+
     unicode_fractions = {
         "¼": "1/4",
         "½": "1/2",
@@ -87,14 +105,16 @@ def remove_leading_quantity(ingredient):
 
     if len(words) == 0:
         return ingredient
-    
-    first_word = words[0]
 
     unicode_fractions = "¼½¾⅓⅔⅛⅜⅝⅞"
+    first_word = words[0]
+
+    if len(words) > 1 and first_word[0].isdigit() and "/" in words[1]:
+        return " ".join(words[2:])
 
     if first_word[0].isdigit() or "/" in first_word or first_word in unicode_fractions:
         return " ".join(words[1:])
-    
+
     return ingredient
 
 def extract_unit(ingredient):
@@ -196,6 +216,8 @@ def get_ingredient_name(ingredient):
     return ingredient.strip()
 
 def singularize_ingredient(name):
+    if " and " in name:
+        return name
 
     if name.endswith("ies"):
         return name[:-3] + "y"
