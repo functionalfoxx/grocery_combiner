@@ -25,5 +25,10 @@ if len(all_recipes) == 0:
     print("No recipes were added.")
 else:
     all_ingredients = collect_ingredients(all_recipes)
+
+    print("\nDEBUG INGREDIENT DATA\n")
+    for item in all_ingredients:
+        print(item)
+
     ingredient_counts = count_ingredients(all_ingredients)
     display_grocery_list(ingredient_counts)

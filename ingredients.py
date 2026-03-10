@@ -43,6 +43,22 @@ def extract_quantity(ingredient):
         return float(first_word)
     except ValueError:
         return None
+    
+def remove_leading_quantity(ingredient):
+    words = ingredient.split()
+
+    if len(words) == 0:
+        return ingredient
+    
+    first_word = words[0]
+
+    unicode_fractions = "¼½¾⅓⅔⅛⅜⅝⅞"
+
+    if first_word[0].isdigit() or "/" in first_word or first_word in unicode_fractions:
+        return " ".join(words[1:])
+    
+    return ingredient
+
 
 def remove_filler_words(ingredient):
     filler_words = ["optional", "to", "taste", "for", "garnish", "serve", "serving"]
@@ -97,15 +113,15 @@ def collect_ingredients(all_recipes):
         ingredients = recipe["ingredients"]
 
         for ingredient in ingredients:
+            quantity = extract_quantity(ingredient)
             normalized = normalize_ingredient(ingredient)
             no_parentheses = remove_parentheses(normalized)
             cleaned = remove_filler_words(no_parentheses)
-            no_amount = remove_leading_amount(cleaned)
+            no_amount = remove_leading_quantity(cleaned)
             final_ingredient = normalize_spaces(no_amount)
 
             if final_ingredient != "":
-                all_ingredients.append(final_ingredient)
-
+                all_ingredients.append((quantity, final_ingredient))
 
     return all_ingredients
 
@@ -131,7 +147,8 @@ def singularize_ingredient(name):
 def count_ingredients(all_ingredients):
     ingredient_counts = {}
 
-    for ingredient in all_ingredients:
+    for item in all_ingredients:
+        quantity, ingredient = item
         name = get_ingredient_name(ingredient)
         name = singularize_ingredient(name)
 
