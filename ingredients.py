@@ -1,7 +1,7 @@
 from fractions import Fraction
 import re
 
-leading_descriptors = {
+LEADING_DESCRIPTORS = {
     "beaten",
     "boiling",
     "boneless",
@@ -51,6 +51,31 @@ leading_descriptors = {
     "warmed",
     "zested"
 }
+
+UNICODE_FRACTIONS = {
+        "¼": "1/4",
+        "½": "1/2",
+        "¾": "3/4",
+        "⅓": "1/3",
+        "⅔": "2/3",
+        "⅛": "1/8",
+        "⅜": "3/8",
+        "⅝": "5/8",
+        "⅞": "7/8"
+    }
+
+WRITTEN_NUMBERS = {
+        "one": 1.0,
+        "two": 2.0,
+        "three": 3.0,
+        "four": 4.0,
+        "five": 5.0,
+        "six": 6.0,
+        "seven": 7.0,
+        "eight": 8.0,
+        "nine": 9.0,
+        "ten": 10.0
+    }
 
 def add_recipe(all_recipes, recipe_data):
     if recipe_data is not None:
@@ -106,7 +131,7 @@ def remove_comma_descriptors(text):
 
     first_part_words = parts[0].split()
 
-    if len(first_part_words) > 0 and all(word in leading_descriptors for word in first_part_words):
+    if len(first_part_words) > 0 and all(word in LEADING_DESCRIPTORS for word in first_part_words):
         return " ".join(parts[:2]).strip()
 
     return parts[0]
@@ -117,7 +142,7 @@ def remove_leading_descriptors(text):
     if len(words) == 0:
         return text
 
-    while len(words) > 0 and words[0] in leading_descriptors:
+    while len(words) > 0 and words[0] in LEADING_DESCRIPTORS:
         words.pop(0)
 
     return " ".join(words)
@@ -255,35 +280,10 @@ def extract_quantity(ingredient):
     if len(words) == 0:
         return None
 
-    written_numbers = {
-        "one": 1.0,
-        "two": 2.0,
-        "three": 3.0,
-        "four": 4.0,
-        "five": 5.0,
-        "six": 6.0,
-        "seven": 7.0,
-        "eight": 8.0,
-        "nine": 9.0,
-        "ten": 10.0
-    }
-
-    unicode_fractions = {
-        "¼": "1/4",
-        "½": "1/2",
-        "¾": "3/4",
-        "⅓": "1/3",
-        "⅔": "2/3",
-        "⅛": "1/8",
-        "⅜": "3/8",
-        "⅝": "5/8",
-        "⅞": "7/8"
-    }
-
     first_word = words[0].lower().strip(",")
     first_word = first_word.replace("–", "-").replace("—", "-")
 
-    if len(words) > 2 and first_word in written_numbers:
+    if len(words) > 2 and first_word in WRITTEN_NUMBERS:
         second_word = words[1].lower().strip(",.")
         third_word = words[2].lower().strip(",.")
         second_word = second_word.replace("–", "-").replace("—", "-")
@@ -293,11 +293,11 @@ def extract_quantity(ingredient):
 
         if ounce_match and third_word in {"can", "cans"}:
             package_size = float(ounce_match.group(1))
-            return written_numbers[first_word] * package_size
+            return WRITTEN_NUMBERS[first_word] * package_size
 
         if oz_match and third_word in {"can", "cans"}:
             package_size = float(oz_match.group(1))
-            return written_numbers[first_word] * package_size
+            return WRITTEN_NUMBERS[first_word] * package_size
 
     attached_match = re.match(r"^(\d+(?:\.\d+)?)([a-z]+)$", first_word)
     if attached_match:
@@ -325,16 +325,16 @@ def extract_quantity(ingredient):
         except ValueError:
             pass
 
-    if len(words) > 1 and words[1] in unicode_fractions:
+    if len(words) > 1 and words[1] in UNICODE_FRACTIONS:
         try:
             whole = float(words[0])
-            fraction = float(Fraction(unicode_fractions[words[1]]))
+            fraction = float(Fraction(UNICODE_FRACTIONS[words[1]]))
             return round(whole + fraction, 2)
         except ValueError:
             pass
 
-    if first_word in unicode_fractions:
-        return round(float(Fraction(unicode_fractions[first_word])), 2)
+    if first_word in UNICODE_FRACTIONS:
+        return round(float(Fraction(UNICODE_FRACTIONS[first_word])), 2)
 
     if "/" in first_word:
         return round(float(Fraction(first_word)), 2)
@@ -344,8 +344,8 @@ def extract_quantity(ingredient):
     except ValueError:
         pass
 
-    if first_word in written_numbers:
-        return written_numbers[first_word]
+    if first_word in WRITTEN_NUMBERS:
+        return WRITTEN_NUMBERS[first_word]
 
     return None
 
@@ -355,12 +355,7 @@ def remove_leading_written_number(text):
     if not words:
         return text
 
-    written_numbers = {
-        "one", "two", "three", "four", "five",
-        "six", "seven", "eight", "nine", "ten"
-    }
-
-    if words[0] in written_numbers:
+    if words[0] in WRITTEN_NUMBERS:
         return " ".join(words[1:])
 
     return text
@@ -446,15 +441,6 @@ def extract_unit(ingredient):
     if not words:
         return None
 
-    written_numbers = {
-        "one", "two", "three", "four", "five",
-        "six", "seven", "eight", "nine", "ten"
-    }
-
-    unicode_fractions = {
-        "¼", "½", "¾", "⅓", "⅔", "⅛", "⅜", "⅝", "⅞"
-    }
-
     first_word = words[0].lower().strip(",")
     first_word = first_word.replace("–", "-").replace("—", "-")
 
@@ -463,7 +449,7 @@ def extract_unit(ingredient):
         unit_word = singularize_unit(attached_match.group(2))
         return unit_map.get(unit_word)
 
-    if len(words) > 2 and first_word in written_numbers:
+    if len(words) > 2 and first_word in WRITTEN_NUMBERS:
         second_word = words[1].lower().strip(",")
         third_word = words[2].lower().strip(",")
         second_word = second_word.replace("–", "-").replace("—", "-")
@@ -480,7 +466,7 @@ def extract_unit(ingredient):
         third_word = singularize_unit(third_word)
 
         if first_word.replace(".", "", 1).isdigit():
-            if "/" in second_word or second_word in unicode_fractions:
+            if "/" in second_word or second_word in UNICODE_FRACTIONS:
                 return unit_map.get(third_word)
 
     if len(words) > 1:
@@ -493,10 +479,10 @@ def extract_unit(ingredient):
         if "/" in first_word:
             return unit_map.get(second_word)
 
-        if first_word in unicode_fractions:
+        if first_word in UNICODE_FRACTIONS:
             return unit_map.get(second_word)
 
-        if first_word in written_numbers:
+        if first_word in WRITTEN_NUMBERS:
             return unit_map.get(second_word)
 
     first_word = singularize_unit(first_word)
@@ -580,45 +566,12 @@ def remove_filler_words(ingredient):
 
     return " ".join(cleaned_words)
 
-def remove_parentheses(ingredient):
-    result = ""
-    skip = False
-
-    for char in ingredient:
-        if char == "(":
-            skip = True
-        elif char == ")":
-            skip = False
-        elif not skip:
-            result += char
-
-    return result.strip()
-
-def remove_brackets(ingredient):
-    result = ""
-    skip = False
-
-    for char in ingredient:
-        if char == "[":
-            skip = True
-        elif char == "]":
-            skip = False
-        elif not skip:
-            result += char
-
-    return result.strip()
+def remove_parenthetical_text(text):
+    return re.sub(r"\([^)]*\)|\[[^\]]*\]", "", text).strip()
 
 def normalize_quantity_ranges(ingredient):
     pattern = r'^\s*(\d+(?:\.\d+)?|\d+/\d+|[¼½¾⅓⅔⅛⅜⅝⅞])\s*(?:to|-|–|—)\s*(\d+(?:\.\d+)?|\d+/\d+|[¼½¾⅓⅔⅛⅜⅝⅞])\s+'
     return re.sub(pattern, r'\1 ', ingredient).strip()
-
-def remove_repeated_leading_word(text):
-    words = text.split()
-
-    if len(words) >= 2 and words[0] == words[1]:
-        return " ".join(words[1:])
-
-    return text
 
 def collect_ingredients(all_recipes):
     all_ingredients = []
@@ -629,9 +582,8 @@ def collect_ingredients(all_recipes):
         for ingredient in ingredients:
             normalized = normalize_ingredient(ingredient)
             normalized = normalize_written_fractions(normalized)
-            no_parentheses = remove_parentheses(normalized)
-            no_brackets = remove_brackets(no_parentheses)
-            normalized_ranges = normalize_quantity_ranges(no_brackets)
+            no_parentheses = remove_parenthetical_text(normalized)
+            normalized_ranges = normalize_quantity_ranges(no_parentheses)
             cleaned = remove_filler_words(normalized_ranges)
 
             quantity = extract_quantity(cleaned)
@@ -671,9 +623,6 @@ def collect_ingredients(all_recipes):
                 all_ingredients.append((quantity, unit, final_ingredient))
 
     return all_ingredients
-
-def get_ingredient_name(ingredient):
-    return ingredient.strip()
 
 def singularize_ingredient(name):
     if " and " in name:
@@ -736,9 +685,8 @@ def singularize_ingredient(name):
 def count_ingredients(all_ingredients):
     ingredient_counts = {}
 
-    for item in all_ingredients:
-        quantity, unit, ingredient = item
-        name = get_ingredient_name(ingredient)
+    for quantity, unit, ingredient in all_ingredients:
+        name = ingredient.strip()
         name = singularize_ingredient(name)
         key = (name, unit)
 
