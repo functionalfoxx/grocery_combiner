@@ -32,7 +32,9 @@ def remove_leading_amount(ingredient):
     first_word = words [0]
     fraction_chars = "¼½¾⅓⅔⅛⅜⅝⅞"
 
-    if first_word [0].isdigit() or first_word[0] in fraction_chars:
+    is_fraction = "/" in first_word
+
+    if first_word [0].isdigit() or first_word[0] in fraction_chars or is_fraction:
             if len(words) >= 3:
                 return " ".join(words[2:])
             if len(words) == 2:
