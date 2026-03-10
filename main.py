@@ -3,12 +3,21 @@ from ingredients import add_recipe, collect_ingredients, display_ingredients
 
 all_recipes = []
 
-url = input("Enter recipe URL: ").strip()
+while True:
+    url = input("Enter recipe URL or type done when finished: ").strip()
 
-recipe_data = get_recipe(url)
-all_recipes = add_recipe(all_recipes, recipe_data)
+    if url == "":
+        print ("\nPlease enter a URL.\n")
+        continue
+
+    if url.lower() == "done":
+        break
+
+    recipe_data = get_recipe(url)
+    all_recipes = add_recipe(all_recipes, recipe_data)
+
 all_ingredients = collect_ingredients(all_recipes)
 display_ingredients(all_ingredients)
 
 if recipe_data is None:
-    print("Could not extract recipe from this URL.")
+    print("\nCould not extract recipe from this URL.\n")

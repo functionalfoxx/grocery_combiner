@@ -15,3 +15,4 @@ def collect_ingredients(all_recipes):
 def display_ingredients(all_ingredients):
     for ingredient in all_ingredients:
         print("-", ingredient)
+        print()
