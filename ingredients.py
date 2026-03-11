@@ -149,6 +149,8 @@ PACKAGING_PHRASE_PATTERNS = [
 
 QUANTITY_TEXT_REPLACEMENTS = {
     "half": "1/2",
+    "half a": "1/2",
+    "half an": "1/2",
     "a half": "1/2",
     "an half": "1/2",
     "half of": "1/2",
